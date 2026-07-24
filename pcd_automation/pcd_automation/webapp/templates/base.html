@@ -162,6 +162,7 @@
     <a href="{{ url_for('pcd.consultar') }}">Consultar MAPPA</a>
     <a href="{{ url_for('pcd.extrair') }}">Extrair de documento</a>
     <a href="{{ url_for('pcd.novo') }}">+ Novo PCD</a>
+    {% if login_ativo %}<a href="{{ url_for('pcd.logout') }}">Sair</a>{% endif %}
   </div>
 </header>
 <main>

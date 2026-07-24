@@ -8,14 +8,28 @@ continuado pela página web e vice-versa.
 """
 from __future__ import annotations
 
+import hmac
 import json
+import os
+import secrets
 import shutil
 import tempfile
 from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, Blueprint, abort, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask import (
+    Flask,
+    Blueprint,
+    abort,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from werkzeug.utils import secure_filename
 
 from pcd_automation import extracao
@@ -47,6 +61,66 @@ _VALORES_NAO_ENCONTRADO = {
 
 bp = Blueprint("pcd", __name__)
 
+
+# ---------------------------------------------------------------- autenticação
+#
+# Proteção simples por senha única (ferramenta de um usuário só). A senha vem
+# da variável de ambiente PCD_SENHA:
+#   - se PCD_SENHA ESTIVER definida, todas as páginas exigem login;
+#   - se NÃO estiver (ex.: uso local no seu PC), o app fica aberto, como antes.
+# Ou seja: no servidor (PythonAnywhere) você DEFINE PCD_SENHA para ativar o
+# login; no seu computador, sem definir nada, continua sem senha.
+#
+# É uma proteção básica (uma senha compartilhada), adequada para uso pessoal /
+# de treino - NÃO é um controle de acesso multiusuário com perfis. Para dados
+# reais de PCD, isso exigiria infraestrutura oficial da PMMG.
+
+def _senha_configurada() -> str | None:
+    senha = os.environ.get("PCD_SENHA")
+    return senha if senha else None
+
+
+@bp.before_request
+def _exigir_login():
+    if _senha_configurada() is None:
+        return  # sem senha definida -> app aberto (uso local)
+    # Rotas liberadas mesmo sem login: a própria tela de login e os estáticos.
+    if request.endpoint in ("pcd.login", "static"):
+        return
+    if not session.get("autenticado"):
+        return redirect(url_for("pcd.login", proxima=request.full_path))
+
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+    senha_correta = _senha_configurada()
+    if senha_correta is None:
+        # Login não se aplica (app aberto) - manda pro painel.
+        return redirect(url_for("pcd.dashboard"))
+
+    erro = None
+    if request.method == "POST":
+        informada = request.form.get("senha") or ""
+        # Comparação em tempo constante para não vazar o tamanho/conteúdo da senha.
+        if hmac.compare_digest(informada, senha_correta):
+            session["autenticado"] = True
+            proxima = request.form.get("proxima") or url_for("pcd.dashboard")
+            # Evita open-redirect: só aceita caminhos internos.
+            if not proxima.startswith("/"):
+                proxima = url_for("pcd.dashboard")
+            return redirect(proxima)
+        erro = "Senha incorreta."
+
+    proxima = request.args.get("proxima") or url_for("pcd.dashboard")
+    return render_template("login.html", erro=erro, proxima=proxima)
+
+
+@bp.route("/logout")
+def logout():
+    session.pop("autenticado", None)
+    return redirect(url_for("pcd.login"))
+
+
 CAMPOS_LONGOS = {
     "resumo_fato", "analise_fatos_e_provas", "alegacoes_defesa_analise",
     "teor_depoimento", "observacoes_impedimento", "outras_provas",
@@ -71,7 +145,10 @@ def _avisos_redacao(dados: dict) -> list[str]:
 
 @bp.app_context_processor
 def _injetar_globals():
-    return {"etapas_todas": ETAPAS}
+    return {
+        "etapas_todas": ETAPAS,
+        "login_ativo": _senha_configurada() is not None,
+    }
 
 
 def _diretorio_base() -> Path:
@@ -612,5 +689,9 @@ def criar_app(diretorio_base: Path | str) -> Flask:
     app = Flask(__name__)
     app.config["DIRETORIO_BASE"] = Path(diretorio_base)
     app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB - limite de upload em /extrair
+    # Chave para assinar os cookies de sessão (login). Idealmente vem de
+    # PCD_SECRET_KEY (fixa entre reinícios); se ausente, gera uma aleatória -
+    # funciona, mas desloga todo mundo a cada reinício do servidor.
+    app.config["SECRET_KEY"] = os.environ.get("PCD_SECRET_KEY") or secrets.token_hex(32)
     app.register_blueprint(bp)
     return app

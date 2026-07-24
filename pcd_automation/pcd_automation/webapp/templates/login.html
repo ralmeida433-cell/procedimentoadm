@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar - Assistente de PCD PMMG</title>
+<style>
+  :root { --azul:#1e40af; --azul-claro:#3b82f6; --fundo:#f4f7fb; --texto:#1e293b; --borda:#e2e8f0; --erro:#dc2626; --erro-fundo:#fef2f2; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto);
+         margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+  .cartao-login { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:2.25rem 2rem;
+                  box-shadow:0 4px 16px rgba(15,23,42,.08); width:100%; max-width:380px; }
+  h1 { font-size:1.15rem; color:var(--azul); margin:0 0 .35rem; }
+  p.sub { color:#64748b; font-size:.85rem; margin:0 0 1.5rem; }
+  label { display:block; font-weight:600; font-size:.88rem; margin:0 0 .4rem; }
+  input[type=password] { width:100%; padding:.6rem .7rem; border:1px solid var(--borda); border-radius:8px;
+                         font-size:1rem; background:#fff; color:var(--texto); }
+  input:focus { outline:2px solid var(--azul-claro); border-color:var(--azul-claro); }
+  button { width:100%; margin-top:1.2rem; padding:.7rem; border:none; border-radius:8px; background:var(--azul);
+           color:#fff; font-weight:600; font-size:.95rem; cursor:pointer; }
+  button:hover { background:#1e3a8a; }
+  .caixa-erro { background:var(--erro-fundo); color:var(--erro); border:1px solid #fecaca; border-radius:8px;
+                padding:.6rem .8rem; font-size:.88rem; margin-bottom:1rem; }
+</style>
+</head>
+<body>
+  <form class="cartao-login" method="post" action="{{ url_for('pcd.login') }}">
+    <h1>Assistente de PCD - PMMG</h1>
+    <p class="sub">Acesso restrito. Informe a senha para continuar.</p>
+    {% if erro %}<div class="caixa-erro">{{ erro }}</div>{% endif %}
+    <input type="hidden" name="proxima" value="{{ proxima }}">
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" name="senha" autofocus required>
+    <button type="submit">Entrar</button>
+  </form>
+</body>
+</html>
