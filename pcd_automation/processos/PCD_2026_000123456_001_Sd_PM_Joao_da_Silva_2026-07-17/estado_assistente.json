@@ -1,0 +1,110 @@
+{
+  "etapa_concluida_ate": "oficio",
+  "dados": {
+    "reds": "2026-000123456-001",
+    "nome_sindicado": "Sd PM João da Silva",
+    "re_sindicado": "123.456-7",
+    "posto_graduacao_sindicado": "Soldado",
+    "unidade_sindicado": "1º BPM",
+    "data_fato": {
+      "__data__": "2026-07-15"
+    },
+    "resumo_fato": "O militar teria deixado de comparecer ao serviço de escala de turno no dia 15/07/2026, sem apresentar justificativa legal prévia.",
+    "nome_autoridade_processante": "1º Ten PM Marcos Oliveira",
+    "posto_autoridade_processante": "1º Tenente",
+    "re_autoridade_processante": "987.654-3",
+    "nome_autoridade_delegante": "Cel PM Roberto Santos",
+    "posto_autoridade_delegante": "Coronel",
+    "data_instauracao": {
+      "__data__": "2026-07-17"
+    },
+    "nome_comunicante": "3º Sgt PM Carlos Souza",
+    "posto_comunicante": "3º Sargento",
+    "re_comunicante": "112.233-4",
+    "unidade_comunicante": "1º BPM",
+    "data_comunicacao": {
+      "__data__": "2026-07-16"
+    },
+    "numero_processo": "001/2026-PCD",
+    "numero_regiao_pm": "1ª RPM",
+    "numero_batalhao_pm": "1º BPM",
+    "unidade_autoridade_processante": "6 companhia",
+    "numero_comunicacao_disciplinar": "CD-105/2026",
+    "numero_folhas_comunicacao_disciplinar": "05",
+    "numero_folhas_escala_servico": "02",
+    "cidade_fato": "Belo Horizonte",
+    "hora_fato": "08:00",
+    "local_fato": "Sede do 1º BPM",
+    "tipificacao_cedm": "Art. 13, inciso IV",
+    "cidade_sede": "Belo Horizonte",
+    "estavel_autoridade_processante": false,
+    "parentesco_ou_inimizade": false,
+    "observacoes_impedimento": "N/A",
+    "prorrogado": false,
+    "data_citacao": {
+      "__data__": "2026-07-20"
+    },
+    "numero_folha_inicial_defesa_previa": "4",
+    "numero_folha_final_defesa_previa": "6",
+    "numero_folhas_autos_defesa_previa": "6",
+    "numero_inciso_cedm": "6",
+    "numero_artigo_cedm": "6",
+    "data_oitiva": {
+      "__data__": "2026-07-20"
+    },
+    "hora_oitiva": "18",
+    "nome_testemunha": "18",
+    "posto_testemunha": "Soldado",
+    "re_testemunha": "alegou que não estava no local e não presenciou o ocoriido.",
+    "unidade_testemunha": "1 cia ind",
+    "data_notificacao_testemunha": {
+      "__data__": "2026-07-20"
+    },
+    "data_notificacao_sindicado": {
+      "__data__": "2026-07-19"
+    },
+    "endereco_sede": "Osvaldo barbosa pena II, 380, nova lima, minas gerais.",
+    "numero_ordem_testemunha": null,
+    "nome_pai_testemunha": null,
+    "nome_mae_testemunha": null,
+    "idade_testemunha": null,
+    "data_nascimento_testemunha": null,
+    "sexo_testemunha": null,
+    "nacionalidade_testemunha": null,
+    "naturalidade_testemunha": null,
+    "estado_civil_testemunha": null,
+    "cpf_testemunha": null,
+    "identidade_testemunha": null,
+    "local_trabalho_testemunha": null,
+    "telefone_celular_testemunha": null,
+    "telefone_residencial_testemunha": null,
+    "telefone_comercial_testemunha": null,
+    "escolaridade_testemunha": null,
+    "teor_depoimento": null,
+    "hora_inicio_depoimento": null,
+    "hora_fim_depoimento": null,
+    "nome_defensor_sindicado": null,
+    "data_vista_final": {
+      "__data__": "2026-07-09"
+    },
+    "numero_folha_inicial_red": "ghjgggggggggggggj",
+    "numero_folha_final_red": "6",
+    "numero_folhas_autos_red": "8",
+    "analise_fatos_e_provas": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "alegacoes_defesa_analise": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "numero_folha_depoimento_testemunha": "10",
+    "objetos_apreendidos": "não",
+    "outras_provas": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "data_hora_militar_fato": "18",
+    "em_servico_sindicado": true,
+    "incidentes_processuais": null,
+    "data_relatorio": {
+      "__data__": "2026-07-21"
+    },
+    "numero_oficio_remessa": "11",
+    "numero_folhas_autos_final": "11",
+    "data_oficio_remessa": {
+      "__data__": "2026-07-20"
+    }
+  }
+}

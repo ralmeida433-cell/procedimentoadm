@@ -1,0 +1,129 @@
+"""Índice de busca (BM25) sobre as referências do MAPPA.
+
+Reaproveita, sem duplicar, os mesmos arquivos de `references/` usados pela
+skill `especialista-mappa` (`.claude/skills/especialista-mappa/references/`)
+- essa pasta é a única fonte de verdade sobre prazos, ritos e artigos.
+"""
+from __future__ import annotations
+
+import os
+import re
+import unicodedata
+from dataclasses import dataclass
+from pathlib import Path
+
+from rank_bm25 import BM25Okapi
+
+TAMANHO_MAXIMO_CHUNK = 1200  # caracteres por trecho, aproximadamente
+
+# Arquivos que tratam especificamente de UM processo - usado para reforçar
+# (ou penalizar) a pontuação de busca quando a pergunta cita a sigla do
+# processo, já que capítulos de processos diferentes usam vocabulário muito
+# parecido ("defesa prévia", "sindicado" etc.) e o BM25 puro, sozinho, tende
+# a misturar as siglas.
+PROCESSO_POR_ARQUIVO: dict[str, set[str]] = {
+    "cap03-dever-comunicar-investigar.md": {"pcd", "pqd", "tdr", "rr"},
+    "cap05-rip.md": {"rip"},
+    "cap08-sad.md": {"sad"},
+    "cap09-sindicancia-viatura.md": {"sad"},
+    "cap10-pad.md": {"pad"},
+    "cap11-pads.md": {"pads"},
+    "cap12-pae.md": {"pae"},
+    "cap13-recompensas.md": {"pr"},
+}
+_SIGLAS_CONHECIDAS = {s for siglas in PROCESSO_POR_ARQUIVO.values() for s in siglas}
+_REFORCO_SIGLA = 1.6
+_PENALIDADE_SIGLA_DIVERGENTE = 0.5
+
+
+def _raiz_referencias_padrao() -> Path:
+    caminho_env = os.environ.get("MAPPA_REFERENCIAS_DIR")
+    if caminho_env:
+        return Path(caminho_env)
+    raiz_projeto = Path(__file__).resolve().parents[3]
+    return raiz_projeto / ".claude" / "skills" / "especialista-mappa" / "references"
+
+
+@dataclass
+class Trecho:
+    arquivo: str
+    indice: int
+    texto: str
+
+
+def _normalizar(texto: str) -> list[str]:
+    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii").lower()
+    return re.findall(r"[a-z0-9]+", texto)
+
+
+def _dividir_em_paragrafos(texto: str) -> list[str]:
+    return [p.strip() for p in re.split(r"\n\s*\n", texto) if p.strip()]
+
+
+def _agrupar_paragrafos(paragrafos: list[str], tamanho_maximo: int) -> list[str]:
+    grupos: list[str] = []
+    atual: list[str] = []
+    tamanho_atual = 0
+    for paragrafo in paragrafos:
+        if atual and tamanho_atual + len(paragrafo) > tamanho_maximo:
+            grupos.append("\n\n".join(atual))
+            ultimo = atual[-1]
+            atual = [ultimo]
+            tamanho_atual = len(ultimo)
+        atual.append(paragrafo)
+        tamanho_atual += len(paragrafo)
+    if atual:
+        grupos.append("\n\n".join(atual))
+    return grupos
+
+
+def carregar_trechos(raiz_referencias: Path) -> list[Trecho]:
+    if not raiz_referencias.exists():
+        raise FileNotFoundError(
+            f"Pasta de referências do MAPPA não encontrada em: {raiz_referencias}. "
+            "Defina a variável de ambiente MAPPA_REFERENCIAS_DIR se o caminho padrão não se aplicar."
+        )
+    trechos: list[Trecho] = []
+    for caminho in sorted(raiz_referencias.glob("*.md")):
+        texto = caminho.read_text(encoding="utf-8")
+        paragrafos = _dividir_em_paragrafos(texto)
+        for i, grupo in enumerate(_agrupar_paragrafos(paragrafos, TAMANHO_MAXIMO_CHUNK)):
+            trechos.append(Trecho(arquivo=caminho.name, indice=i, texto=grupo))
+    return trechos
+
+
+class IndiceMappa:
+    def __init__(self, raiz_referencias: Path | None = None):
+        self.raiz_referencias = raiz_referencias or _raiz_referencias_padrao()
+        self.trechos = carregar_trechos(self.raiz_referencias)
+        self._bm25 = BM25Okapi([_normalizar(t.texto) for t in self.trechos])
+
+    def buscar(self, pergunta: str, top_k: int = 6) -> list[Trecho]:
+        termos = _normalizar(pergunta)
+        if not termos:
+            return []
+        pontuacoes = list(self._bm25.get_scores(termos))
+
+        siglas_na_pergunta = set(termos) & _SIGLAS_CONHECIDAS
+        if siglas_na_pergunta:
+            for i, trecho in enumerate(self.trechos):
+                siglas_arquivo = PROCESSO_POR_ARQUIVO.get(trecho.arquivo)
+                if siglas_arquivo is None:
+                    continue
+                if siglas_arquivo & siglas_na_pergunta:
+                    pontuacoes[i] *= _REFORCO_SIGLA
+                else:
+                    pontuacoes[i] *= _PENALIDADE_SIGLA_DIVERGENTE
+
+        indices_ordenados = sorted(range(len(pontuacoes)), key=lambda i: pontuacoes[i], reverse=True)
+        return [self.trechos[i] for i in indices_ordenados[:top_k] if pontuacoes[i] > 0]
+
+
+_indice_global: IndiceMappa | None = None
+
+
+def obter_indice() -> IndiceMappa:
+    global _indice_global
+    if _indice_global is None:
+        _indice_global = IndiceMappa()
+    return _indice_global

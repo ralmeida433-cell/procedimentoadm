@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Processo {{ processo_id }}{% endblock %}
+{% block conteudo %}
+<div class="etapas">
+  {% for e in etapas_todas %}
+    <span class="{{ 'atual' if e.titulo == etapa_atual_titulo else '' }}">{{ e.titulo }}</span>
+  {% endfor %}
+</div>
+
+<div class="cartao">
+  <h2>{{ processo_id }}</h2>
+  <p>Etapa concluída até: <strong>{{ etapa_atual_titulo }}</strong></p>
+
+  {% if alertas_prazo %}
+    <div class="caixa caixa-aviso">
+      <strong>Alertas de prazo e consistência:</strong>
+      <ul>
+        {% for a in alertas_prazo %}
+          {% if a is mapping %}<li>{{ a.mensagem }}</li>{% else %}<li>{{ a }}</li>{% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <table class="previa">
+    {% for rotulo, valor in linhas %}
+      <tr><td>{{ rotulo }}</td><td>{{ valor }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h3>Documentos gerados</h3>
+  <ul class="documentos">
+    {% for doc in documentos %}
+      <li>
+        <a href="{{ url_for('pcd.visualizar_documento', processo_id=processo_id, nome_arquivo=doc) }}">{{ doc }}</a>
+        <a class="btn-mini" href="{{ url_for('pcd.download', processo_id=processo_id, nome_arquivo=doc) }}">⬇ Baixar</a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="acoes">
+    {% if proxima %}
+      <a class="btn btn-primario" href="{{ url_for('pcd.formulario_etapa', processo_id=processo_id, etapa_id=proxima.id) }}">Continuar para: {{ proxima.titulo }}</a>
+    {% else %}
+      <span class="badge badge-concluido">Processo concluído</span>
+    {% endif %}
+    <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
+  </div>
+</div>
+{% endblock %}

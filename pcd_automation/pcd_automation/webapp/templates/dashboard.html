@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Painel - Assistente de PCD{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <h2>PCDs em andamento</h2>
+
+  {% if not rascunhos and not processos %}
+    <p>Nenhum PCD em andamento no momento. <a href="{{ url_for('pcd.novo') }}">Criar um novo PCD</a>.</p>
+  {% endif %}
+
+  {% if rascunhos %}
+    <h3>Rascunhos (ainda não instaurados)</h3>
+    <ul class="documentos">
+    {% for r in rascunhos %}
+      <li class="item-lista">
+        <a class="item-principal" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">{{ r.reds or '(sem REDS ainda)' }} - {{ r.nome or '(sem nome ainda)' }}</a>
+        <a class="btn-mini" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">Editar</a>
+        <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_rascunho', chave=r.chave) }}">Excluir</a>
+      </li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if processos %}
+    <h3>Processos instaurados</h3>
+    <ul class="documentos">
+    {% for p in processos %}
+      <li class="item-lista">
+        <a class="item-principal" href="{{ url_for('pcd.status_processo', processo_id=p.id) }}">{{ p.reds }} - {{ p.nome }}</a>
+        {% if p.concluido %}
+          <span class="badge badge-concluido">concluído</span>
+        {% else %}
+          <span class="badge badge-andamento">até: {{ p.etapa_atual }}</span>
+        {% endif %}
+        <a class="btn-mini" href="{{ url_for('pcd.formulario_etapa', processo_id=p.id, etapa_id=p.etapa_atual_id) }}">Editar</a>
+        <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_processo', processo_id=p.id) }}">Excluir</a>
+      </li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <a class="btn btn-primario" href="{{ url_for('pcd.novo') }}">+ Criar novo PCD</a>
+  <a class="btn btn-secundario" href="{{ url_for('pcd.extrair') }}">Extrair dados de documento existente</a>
+</div>
+{% endblock %}

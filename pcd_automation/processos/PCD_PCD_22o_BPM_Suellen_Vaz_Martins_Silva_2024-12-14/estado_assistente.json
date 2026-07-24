@@ -1,0 +1,48 @@
+{
+  "etapa_concluida_ate": "instauracao",
+  "dados": {
+    "reds": "PCD 22º BPM",
+    "nome_sindicado": "Suellen Vaz Martins Silva",
+    "re_sindicado": "154.534-2",
+    "posto_graduacao_sindicado": "Cabo",
+    "unidade_sindicado": "1ª Cia PM Ind",
+    "data_fato": {
+      "__data__": "2025-12-14"
+    },
+    "cidade_fato": "Nova Lima/MG",
+    "hora_fato": "4",
+    "local_fato": "125ª Cia PM/22º BPM - Sala de Operações",
+    "resumo_fato": "deixado de prestar a devida continência nem se apresentado à comunicante e, ao ser solicitada a ceder o computador da Sala de Operações, agido de forma ríspida, levantando-se da cadeira de maneira grosseira e sem proferir qualquer palavra",
+    "nome_autoridade_processante": "Samuel de Lima Costa",
+    "posto_autoridade_processante": "2º Sargento",
+    "re_autoridade_processante": "170.253-9",
+    "unidade_autoridade_processante": "1ª Cia PM Ind",
+    "nome_autoridade_delegante": "Danielle Serrano Figueredo",
+    "posto_autoridade_delegante": "3º Sargento",
+    "data_instauracao": {
+      "__data__": "2024-12-14"
+    },
+    "numero_processo": "121.871",
+    "numero_regiao_pm": "3",
+    "numero_batalhao_pm": "1",
+    "cidade_sede": "Nova Lima/MG",
+    "nome_comunicante": "Bruna Tavares de Lima",
+    "posto_comunicante": "1º Tenente",
+    "unidade_comunicante": "22º BPM",
+    "data_comunicacao": {
+      "__data__": "2024-12-14"
+    },
+    "numero_comunicacao_disciplinar": "121.871",
+    "tipificacao_cedm": "art. 14, inciso XI do Código de Ética e Disciplina dos Militares (CEDM) – deixar de observar preceito legal referente a tratamento, sinais de respeito e honras militares, definidos em normas específicas",
+    "nome_testemunha": "Luís; Fabio Antonio e Silva; Douglas Mesquita Rocha",
+    "posto_testemunha": "1º Tenente",
+    "unidade_testemunha": "22º BPM; 1ª Cia PM Ind",
+    "re_comunicante": "00000000",
+    "numero_folhas_comunicacao_disciplinar": null,
+    "numero_folhas_escala_servico": null,
+    "estavel_autoridade_processante": true,
+    "parentesco_ou_inimizade": null,
+    "observacoes_impedimento": null,
+    "prorrogado": null
+  }
+}

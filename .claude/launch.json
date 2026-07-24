@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pcd-webapp",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["pcd_automation/main.py", "servidor", "--porta", "5000"],
+      "port": 5000
+    }
+  ]
+}

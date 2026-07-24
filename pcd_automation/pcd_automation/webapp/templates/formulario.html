@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<div class="etapas">
+  {% for e in etapas_todas %}
+    <span class="{{ 'atual' if e.id == etapa.id else '' }}">{{ e.titulo }}</span>
+  {% endfor %}
+</div>
+
+<div class="cartao">
+  <h2>{{ titulo }}</h2>
+  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">
+    Campos marcados com <span style="color:var(--erro); font-weight:700;">*</span> são obrigatórios.
+    Passe o mouse sobre o ícone <span class="dica-icone" aria-hidden="true">?</span> para ver a orientação normativa.
+  </p>
+
+  {% if erros %}
+    <div class="caixa caixa-erro">
+      <strong>Corrija antes de continuar:</strong>
+      <ul>{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ action }}">
+    {% for grupo in grupos %}
+      <fieldset class="grupo-campos">
+        <legend>{{ grupo.titulo }}</legend>
+        {% for campo in grupo.campos %}
+          <div class="campo">
+            <label for="{{ campo.chave }}">
+              {{ campo.rotulo }}{% if campo.obrigatorio %}<span class="obrig">*</span>{% endif %}
+              {% if campo.tooltip %}
+                <span class="dica" tabindex="0">
+                  <span class="dica-icone" aria-hidden="true">?</span>
+                  <span class="dica-texto" role="tooltip">{{ campo.tooltip }}</span>
+                </span>
+              {% endif %}
+            </label>
+
+            {% if campo.tipo == 'select' %}
+              <select id="{{ campo.chave }}" name="{{ campo.chave }}" {{ 'required' if campo.obrigatorio else '' }}>
+                <option value="">{{ '-- selecione --' if campo.obrigatorio else '-- não informado --' }}</option>
+                {% if campo.valor_fora_da_lista %}
+                  <option value="{{ campo.valor }}" selected>{{ campo.valor }} (fora da lista)</option>
+                {% endif %}
+                {% for valor, rotulo in campo.opcoes %}
+                  <option value="{{ valor }}" {{ 'selected' if campo.valor == valor else '' }}>{{ rotulo }}</option>
+                {% endfor %}
+              </select>
+            {% elif campo.tipo == 'data' %}
+              <input type="date" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
+            {% elif campo.tipo == 'sim_nao' %}
+              <select id="{{ campo.chave }}" name="{{ campo.chave }}">
+                <option value="" {{ 'selected' if campo.valor == '' else '' }}>-- não informado --</option>
+                <option value="S" {{ 'selected' if campo.valor == 'S' else '' }}>Sim</option>
+                <option value="N" {{ 'selected' if campo.valor == 'N' else '' }}>Não</option>
+              </select>
+            {% elif campo.tipo == 'texto_longo' %}
+              <textarea id="{{ campo.chave }}" name="{{ campo.chave }}" {{ 'required' if campo.obrigatorio else '' }}>{{ campo.valor }}</textarea>
+            {% else %}
+              <input type="text" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+
+    <div class="acoes">
+      <button type="submit" class="btn btn-primario">Continuar</button>
+      <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

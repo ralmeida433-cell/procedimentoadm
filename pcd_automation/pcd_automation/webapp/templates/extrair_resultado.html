@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block titulo %}Resultado da extração{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <h2>Resultado da extração - {{ nome_arquivo }}</h2>
+
+  <table class="previa">
+    <tr><td>Tipo de procedimento identificado</td><td><strong>{{ tipo_documento or "não identificado" }}</strong></td></tr>
+    <tr><td>Confiança da classificação</td><td>{{ confianca_tipo or "-" }}</td></tr>
+  </table>
+
+  {% if confianca_tipo == "baixa" %}
+    <div class="caixa caixa-aviso">
+      A IA não teve certeza sobre o tipo de procedimento. Revise com atenção antes de confirmar.
+    </div>
+  {% endif %}
+
+  {% if campos_criticos_faltando %}
+    <div class="caixa caixa-erro">
+      <strong>Dado obrigatório ausente no documento - será preciso preencher manualmente antes de instaurar:</strong>
+      <ul>
+        {% for campo in campos_criticos_faltando %}<li>Dado obrigatório ausente: {{ campo }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if ambiguidades %}
+    <div class="caixa caixa-aviso">
+      <strong>Ambiguidades sinalizadas pela IA - revise antes de confirmar:</strong>
+      <ul>
+        {% for item in ambiguidades %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <h3>Dados extraídos</h3>
+  {% if campos_exibicao %}
+    <table class="previa">
+      {% for rotulo, valor in campos_exibicao %}
+        <tr><td>{{ rotulo }}</td><td>{{ valor }}</td></tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p style="color:var(--texto-suave);">Nenhum campo reconhecido foi extraído do documento.</p>
+  {% endif %}
+
+  <div class="acoes">
+    <a class="btn btn-secundario" href="{{ url_for('pcd.extrair') }}">Analisar outro arquivo</a>
+    <form method="post" action="{{ url_for('pcd.extrair_confirmar') }}" style="display:inline">
+      <input type="hidden" name="campos_json" value='{{ campos_json }}'>
+      <button type="submit" class="btn btn-primario">Confirmar e criar rascunho com esses dados</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}{{ nome_arquivo }}{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <h2>{{ nome_arquivo }}</h2>
+  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">
+    Prévia aproximada do conteúdo - a formatação oficial (fonte, margens, cabeçalho) só aparece
+    corretamente no arquivo baixado, aberto no Word.
+  </p>
+
+  <div class="acoes" style="margin-top:0; margin-bottom:1.25rem;">
+    <a class="btn btn-primario" href="{{ url_download }}">⬇ Baixar documento (.docx)</a>
+    <a class="btn btn-secundario" href="{{ url_voltar }}">Voltar ao processo</a>
+  </div>
+
+  {% if erro %}
+    <div class="caixa caixa-erro">{{ erro }}</div>
+  {% else %}
+    <div class="moldura-documento">
+      {{ conteudo_html | safe }}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

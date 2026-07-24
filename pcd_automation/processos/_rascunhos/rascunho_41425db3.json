@@ -1,0 +1,29 @@
+{
+  "dados": {
+    "reds": "20/03/2026",
+    "nome_sindicado": "Marcos Túlio de Assis",
+    "re_sindicado": "178.456-1",
+    "posto_graduacao_sindicado": "3º Sargento",
+    "unidade_sindicado": "101º BPM",
+    "data_fato": {
+      "__data__": "2026-02-16"
+    },
+    "cidade_fato": "Vale Verde",
+    "hora_fato": "23",
+    "local_fato": "estabelecimento \"Clube das Águas\"",
+    "resumo_fato": "exercendo de forma nítida a atividade de segurança privada em um evento particular denominado 'Festa VIP'",
+    "nome_autoridade_processante": "Eduardo Vasconcelos De Moraes",
+    "posto_autoridade_processante": "Tenente-Coronel",
+    "data_instauracao": {
+      "__data__": "2026-02-18"
+    },
+    "numero_processo": "010",
+    "nome_comunicante": "Rafael D. Gomes",
+    "posto_comunicante": "1º Tenente",
+    "nome_testemunha": "Leandro Costa Alves",
+    "posto_testemunha": "Cabo",
+    "re_testemunha": "182.111-2",
+    "unidade_testemunha": "101º BPM",
+    "tipificacao_cedm": "art. 13, inciso X (exercer, o militar da ativa, atividade de segurança privada)"
+  }
+}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <h2>{{ titulo }}</h2>
+
+  {% if resultado.ok %}
+    <div class="caixa caixa-sucesso">Documento(s) gerado(s) com sucesso.</div>
+
+    {% if resultado.prazo %}<p><strong>Prazo:</strong> {{ resultado.prazo }}</p>{% endif %}
+
+    {% if resultado.alertas %}
+      <div class="caixa caixa-aviso">
+        <strong>Avisos:</strong>
+        <ul>{% for a in resultado.alertas %}<li>{{ a }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    {% if resultado.pendentes %}
+      <div class="caixa caixa-aviso">
+        <strong>Preencher manualmente no Word antes de assinar:</strong>
+        <ul>{% for p in resultado.pendentes %}<li>{{ p }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    <h3>Documentos</h3>
+    <ul class="documentos">
+      {% for doc in resultado.documentos %}
+        <li>
+          <a href="{{ url_for('pcd.visualizar_documento', processo_id=resultado.processo_id or processo_id, nome_arquivo=doc) }}">{{ doc }}</a>
+          <a class="btn-mini" href="{{ url_for('pcd.download', processo_id=resultado.processo_id or processo_id, nome_arquivo=doc) }}">⬇ Baixar</a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="acoes">
+      {% if proxima %}
+        <a class="btn btn-primario" href="{{ url_for('pcd.formulario_etapa', processo_id=resultado.processo_id or processo_id, etapa_id=proxima.id) }}">Continuar para: {{ proxima.titulo }}</a>
+      {% else %}
+        <span class="badge badge-concluido">Todas as etapas concluídas</span>
+      {% endif %}
+      <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
+    </div>
+  {% else %}
+    <div class="caixa caixa-erro">
+      <strong>Não foi possível gerar:</strong>
+      <ul>{% for e in resultado.erros %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
+  {% endif %}
+</div>
+{% endblock %}

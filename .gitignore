@@ -1,0 +1,24 @@
+# Segredos - NUNCA versionar (contém a chave da API do OpenRouter)
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Caches e artefatos do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Arquivos temporários do sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Temporários do Office ao abrir os .docx
+~$*.docx
+~$*.xlsx

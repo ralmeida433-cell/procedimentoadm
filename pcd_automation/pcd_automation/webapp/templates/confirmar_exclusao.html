@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <h2>{{ titulo }}</h2>
+
+  <div class="caixa caixa-perigo">
+    <strong>⚠ Atenção - esta ação não pode ser desfeita.</strong>
+    <p style="margin:.5rem 0 0;">{{ descricao }}</p>
+  </div>
+
+  <table class="previa">
+    <tr><td>Item</td><td><strong>{{ rotulo_alvo }}</strong></td></tr>
+  </table>
+
+  {% if documentos %}
+    <h3>Documentos que serão apagados junto</h3>
+    <ul class="documentos">
+      {% for doc in documentos %}
+        <li>{{ doc }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="acoes">
+    <a class="btn btn-secundario" href="{{ voltar }}">Cancelar</a>
+    <form method="post" action="{{ action }}" style="display:inline">
+      <button type="submit" class="btn btn-perigo">Sim, excluir definitivamente</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
