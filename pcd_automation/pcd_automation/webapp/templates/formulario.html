@@ -63,6 +63,13 @@
               </select>
             {% elif campo.tipo == 'texto_longo' %}
               <textarea id="{{ campo.chave }}" name="{{ campo.chave }}" {{ 'required' if campo.obrigatorio else '' }}>{{ campo.valor }}</textarea>
+              {% if campo.chave == 'resumo_fato' %}
+                <div class="acoes-ia">
+                  <button type="button" class="btn-mini" id="btn-analisar-fato">Analisar com IA e melhorar a redação</button>
+                  <span class="ia-status" id="ia-status"></span>
+                </div>
+                <div class="caixa caixa-ia" id="painel-ia" hidden></div>
+              {% endif %}
             {% else %}
               <input type="text" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
             {% endif %}
@@ -87,4 +94,135 @@
 <datalist id="unidades-pmmg">
   {% for valor, descricao in unidades_pmmg %}<option value="{{ valor }}" label="{{ descricao }}"></option>{% endfor %}
 </datalist>
+
+{# Análise assistida do resumo do fato. O script se desliga sozinho nas etapas
+   que não têm o campo (o botão não existe), então não precisa de condicional. #}
+<style>
+  .acoes-ia { display: flex; gap: .6rem; align-items: center; margin: .4rem 0 .2rem; flex-wrap: wrap; }
+  .ia-status { font-size: .82rem; color: var(--texto-suave); }
+  .caixa-ia { background: #f8fafc; border: 1px solid var(--borda); }
+  .caixa-ia h4 { margin: 0 0 .4rem; font-size: .88rem; color: var(--azul); }
+  .caixa-ia .sugestao { border-top: 1px solid var(--borda); padding-top: .7rem; margin-top: .7rem; }
+  .caixa-ia .sugestao:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .caixa-ia blockquote {
+    margin: .3rem 0 .5rem; padding: .5rem .7rem; background: #fff;
+    border-left: 3px solid var(--verde); font-style: italic;
+  }
+  .caixa-ia .legal { font-size: .85rem; color: var(--texto-suave); margin: .2rem 0; }
+  .caixa-ia .tag {
+    display: inline-block; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+    padding: .1rem .4rem; border-radius: 4px; background: var(--borda); color: var(--texto);
+    margin-left: .4rem;
+  }
+</style>
+<script>
+(function () {
+  var botao = document.getElementById('btn-analisar-fato');
+  if (!botao) return;
+  var resumo = document.getElementById('resumo_fato');
+  var tipificacao = document.getElementById('tipificacao_cedm');
+  var painel = document.getElementById('painel-ia');
+  var status = document.getElementById('ia-status');
+
+  function el(tag, texto, classe) {
+    var e = document.createElement(tag);
+    if (texto) e.textContent = texto;
+    if (classe) e.className = classe;
+    return e;
+  }
+
+  function lista(titulo, itens) {
+    if (!itens || !itens.length) return null;
+    var bloco = el('div', null, 'sugestao');
+    bloco.appendChild(el('h4', titulo));
+    var ul = document.createElement('ul');
+    itens.forEach(function (i) { ul.appendChild(el('li', i)); });
+    bloco.appendChild(ul);
+    return bloco;
+  }
+
+  function botaoAplicar(rotulo, campo, valor) {
+    var b = el('button', rotulo, 'btn-mini');
+    b.type = 'button';
+    b.addEventListener('click', function () {
+      campo.value = valor;
+      campo.focus({ preventScroll: true });
+      b.textContent = 'aplicado';
+      b.disabled = true;
+    });
+    return b;
+  }
+
+  function blocoTipificacao(t) {
+    var bloco = el('div', null, 'sugestao');
+    var titulo = el('h4', t.tipificacao);
+    titulo.appendChild(el('span', t.natureza, 'tag'));
+    bloco.appendChild(titulo);
+    bloco.appendChild(el('p', '“' + t.texto_legal + '”', 'legal'));
+    if (t.justificativa) bloco.appendChild(el('p', t.justificativa));
+    if (t.confianca) bloco.appendChild(el('p', 'Confiança da sugestão: ' + t.confianca, 'legal'));
+    if (tipificacao) bloco.appendChild(botaoAplicar('Usar esta tipificação', tipificacao, t.tipificacao));
+    return bloco;
+  }
+
+  function render(dados) {
+    painel.textContent = '';
+    painel.hidden = false;
+
+    if (dados.erro) {
+      painel.appendChild(el('strong', 'Não foi possível analisar: '));
+      painel.appendChild(el('span', dados.erro));
+      return;
+    }
+
+    if (dados.resumo_fato) {
+      var bloco = el('div', null, 'sugestao');
+      bloco.appendChild(el('h4', 'Redação sugerida para o resumo do fato'));
+      bloco.appendChild(el('blockquote', dados.resumo_fato));
+      bloco.appendChild(botaoAplicar('Usar este texto', resumo, dados.resumo_fato));
+      painel.appendChild(bloco);
+    }
+
+    (dados.tipificacoes || []).forEach(function (t) { painel.appendChild(blocoTipificacao(t)); });
+
+    if (!(dados.tipificacoes || []).length && (dados.candidatas || []).length) {
+      var alt = el('div', null, 'sugestao');
+      alt.appendChild(el('h4', 'Incisos do CEDM mais próximos (confira e escolha)'));
+      dados.candidatas.forEach(function (c) {
+        var linha = el('p', c.tipificacao + ' — “' + c.texto_legal + '”', 'legal');
+        painel.appendChild(linha);
+      });
+      painel.appendChild(alt);
+    }
+
+    [lista('Confirme antes de instaurar', dados.dados_faltantes),
+     lista('Observações', dados.observacoes),
+     lista('Avisos de redação oficial', dados.avisos_redacao)
+    ].forEach(function (b) { if (b) painel.appendChild(b); });
+
+    painel.appendChild(el('p',
+      'Sugestão de apoio: a tipificação é ato do encarregado. Confira o texto do inciso antes de aceitar.',
+      'legal'));
+  }
+
+  botao.addEventListener('click', function () {
+    var descricao = (resumo.value || '').trim();
+    if (descricao.length < 5) {
+      status.textContent = 'Descreva o fato no campo acima antes de analisar.';
+      return;
+    }
+    botao.disabled = true;
+    status.textContent = 'Analisando com a IA (pode levar alguns segundos)...';
+    fetch('{{ url_for("pcd.analisar_fato") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ descricao: descricao })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (dados) { status.textContent = ''; render(dados); })
+      .catch(function (e) { status.textContent = 'Falha na análise: ' + e; })
+      .then(function () { botao.disabled = false; });
+  });
+})();
+</script>
 {% endblock %}

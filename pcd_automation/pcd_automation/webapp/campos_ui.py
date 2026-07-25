@@ -100,7 +100,7 @@ TOOLTIPS: dict[str, str] = {
     "hora_fato": "Hora aproximada do fato (formato HH:MM). Deixe em branco se não for possível precisar.",
     "cidade_fato": "Município onde o fato ocorreu.",
     "local_fato": "Local específico do fato (endereço, unidade, via etc.).",
-    "resumo_fato": "Descreva objetivamente a conduta — quem, quando, onde e o quê. Evite juízo de valor; foque nos fatos.",
+    "resumo_fato": "Descreva a conduta com suas palavras (ex.: 'faltou ao serviço') e clique em 'Analisar com IA': o sistema reescreve o texto na redação oficial exigida pelos modelos e sugere a transgressão do CEDM correspondente, com o texto do inciso para você conferir. Evite juízo de valor; foque nos fatos.",
     "tipificacao_cedm": "Inciso e artigo do CEDM correspondentes à conduta (ex.: inciso I do art. 13). A tipificação atende ao princípio da legalidade.",
     # Sindicado
     "nome_sindicado": "Nome completo do militar sindicado, sem abreviações, conforme o sistema de gestão de pessoal.",

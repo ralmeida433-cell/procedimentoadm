@@ -23,6 +23,7 @@ from flask import (
     Blueprint,
     abort,
     current_app,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -32,7 +33,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from pcd_automation import extracao
+from pcd_automation import extracao, sugestao_fato
 from pcd_automation.gerador_portarias.planilha import CAMPOS_INFO, converter_valor
 from pcd_automation.gestao_prazos import gerar_alertas_processo
 from pcd_automation.interativo import estado
@@ -638,6 +639,40 @@ def consultar():
         if pergunta:
             resultado = rag_consulta.responder(pergunta)
     return render_template("consultar.html", pergunta=pergunta, resultado=resultado)
+
+
+# ------------------------------------------------- análise do resumo do fato (IA)
+
+@bp.route("/analisar-fato", methods=["POST"])
+def analisar_fato():
+    """Analisa a descrição livre do fato e devolve, em JSON, o texto reescrito
+    na redação oficial e as transgressões do CEDM compatíveis. É consultivo: o
+    formulário só preenche os campos se o encarregado clicar em aplicar."""
+    descricao = ((request.get_json(silent=True) or {}).get("descricao") or "").strip()
+    r = sugestao_fato.analisar(descricao)
+    return jsonify(
+        {
+            "erro": r.erro,
+            "resumo_fato": r.resumo_fato,
+            "dados_faltantes": r.dados_faltantes,
+            "observacoes": r.observacoes,
+            "avisos_redacao": r.avisos_redacao,
+            "tipificacoes": [
+                {
+                    "tipificacao": t.tipificacao,
+                    "natureza": t.transgressao.natureza,
+                    "texto_legal": t.transgressao.texto,
+                    "justificativa": t.justificativa,
+                    "confianca": t.confianca,
+                }
+                for t in r.tipificacoes
+            ],
+            "candidatas": [
+                {"tipificacao": c.tipificacao, "natureza": c.natureza, "texto_legal": c.texto}
+                for c in r.candidatas
+            ],
+        }
+    )
 
 
 # ---------------------------------------------------------------- extração de documentos (IA)

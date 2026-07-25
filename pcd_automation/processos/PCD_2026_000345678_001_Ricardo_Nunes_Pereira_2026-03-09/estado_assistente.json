@@ -13,7 +13,7 @@
     "hora_fato": "8:20",
     "local_fato": "Posto de serviço da 1ª Companhia do 34º BPM, em Ouro Preto/MG",
     "resumo_fato": "deixado de comparecer ao serviço ordinário para o qual foi previamente escalado, ausentando-se sem justificativa legal",
-    "tipificacao_cedm": "art. 13, inciso II, do CEDM (Lei 14.310/2002)",
+    "tipificacao_cedm": "art. 13, inciso XX, do CEDM (Lei 14.310/2002)",
     "nome_autoridade_processante": "Fernando Carlos Ribeiro",
     "posto_autoridade_processante": "2º Sargento",
     "re_autoridade_processante": "160.111-5",
@@ -56,7 +56,7 @@
     "data_defesa_previa_apresentada": {
       "__data__": "2026-03-16"
     },
-    "numero_inciso_cedm": "II",
+    "numero_inciso_cedm": "XX",
     "numero_artigo_cedm": "13",
     "data_oitiva": {
       "__data__": "2026-03-18"
@@ -140,9 +140,9 @@
     "finalidade_texto": "Analisar e emitir parecer sobre o Processo de Comunicação Disciplinar instaurado por meio do Despacho nº 015/2026 - PCD/34º BPM, que apura a ausência ao serviço, em tese, praticada pelo Cb PM Ricardo Nunes Pereira.",
     "verificacao_preliminar_texto": "Verificou-se que o militar foi regularmente notificado da reunião com a antecedência mínima de 48 (quarenta e oito) horas, e que não foram identificados vícios formais no procedimento apuratório.",
     "fundamentacao_fatica_texto": "A instrução comprovou, pela escala de serviço e pelo depoimento testemunhal, que o comunicado não compareceu ao serviço para o qual fora escalado, sem justificativa hábil.",
-    "fundamentacao_legal_texto": "art. 13, inciso II, do Código de Ética e Disciplina dos Militares (Lei 14.310/2002).",
+    "fundamentacao_legal_texto": "art. 13, inciso XX, do Código de Ética e Disciplina dos Militares (Lei 14.310/2002).",
     "analise_merito_texto": "Este Conselho, por unanimidade, entende caracterizada a transgressão disciplinar, uma vez que a defesa não apresentou prova da alegada impossibilidade de comparecimento.",
-    "parecer_texto": "Por unanimidade de votos, pela PROCEDÊNCIA da imputação, sugerindo-se o enquadramento e a punição do militar, com fulcro no art. 13, inciso II, do CEDM.",
+    "parecer_texto": "Por unanimidade de votos, pela PROCEDÊNCIA da imputação, sugerindo-se o enquadramento e a punição do militar, com fulcro no art. 13, inciso XX, do CEDM.",
     "hora_inicio_reuniao": "16h00min",
     "hora_fim_reuniao": "17h10min"
   }
