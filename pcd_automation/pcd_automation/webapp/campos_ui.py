@@ -134,6 +134,8 @@ TOOLTIPS: dict[str, str] = {
     "parentesco_ou_inimizade": "Marque 'Sim' se o encarregado tem parentesco, amizade íntima ou inimizade notória com o sindicado — hipótese de impedimento (deve declarar-se impedido).",
     "observacoes_impedimento": "Detalhe a situação de impedimento declarada, se houver.",
     "prorrogado": "Marque 'Sim' se o prazo de conclusão foi prorrogado por mais 10 dias corridos, a pedido ou por determinação da autoridade.",
+    "numero_inciso_cedm": "Número do inciso do CEDM que o Termo de Vista cita (ex.: XX). Pode deixar em branco: é derivado da Tipificação CEDM informada na instauração. Preencha só se quiser sobrescrever.",
+    "numero_artigo_cedm": "Número do artigo do CEDM que o Termo de Vista cita (ex.: 13). Pode deixar em branco: é derivado da Tipificação CEDM informada na instauração. Preencha só se quiser sobrescrever.",
     "data_hora_militar_fato": "Grupo Data-Hora (GDH) militar do fato. Pode deixar em branco: é gerado automaticamente a partir da Data e da Hora do Fato (ex.: 050820Mar26 - Qui). Preencha só se quiser sobrescrever.",
 }
 

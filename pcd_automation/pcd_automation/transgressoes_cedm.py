@@ -1078,6 +1078,40 @@ def por_tipificacao(artigo: int, inciso: str) -> Transgressao | None:
     return _POR_CHAVE.get((artigo, inciso.strip().upper()))
 
 
+# Reconhece a citação dentro de um texto livre de tipificação. Aceita as formas
+# que aparecem na prática: "art. 13, inciso XX, do CEDM", "artigo 13, XX",
+# "inciso XX do art. 13". O número do artigo é procurado a partir da primeira
+# ocorrência de "art", e o inciso pode vir antes ou depois dele.
+_RE_ARTIGO = re.compile(r"art(?:igo)?\.?\s*(\d{1,3})", re.IGNORECASE)
+_RE_INCISO = re.compile(r"inciso\s+([IVXLC]+)\b", re.IGNORECASE)
+_RE_ARTIGO_INCISO = re.compile(r"art(?:igo)?\.?\s*(\d{1,3})\s*,\s*([IVXLC]+)\b", re.IGNORECASE)
+
+
+def extrair_de_texto(texto: str | None) -> Transgressao | None:
+    """Identifica qual transgressão está citada num texto livre de tipificação
+    (o conteúdo do campo `tipificacao_cedm`, que o encarregado pode ter escrito
+    à mão ou aceitado da sugestão).
+
+    Só devolve a transgressão se a citação existir nesta base - assim o
+    artigo/inciso derivado daqui nunca aponta para dispositivo inexistente.
+    Quando não reconhece, devolve None e quem chamou trata como não informado.
+    """
+    if not texto:
+        return None
+    texto = str(texto)
+
+    m_artigo = _RE_ARTIGO.search(texto)
+    m_inciso = _RE_INCISO.search(texto)
+    if m_artigo and m_inciso:
+        return por_tipificacao(int(m_artigo.group(1)), m_inciso.group(1))
+
+    # Forma abreviada, sem a palavra "inciso": "art. 13, XX".
+    m_curto = _RE_ARTIGO_INCISO.search(texto)
+    if m_curto:
+        return por_tipificacao(int(m_curto.group(1)), m_curto.group(2))
+    return None
+
+
 def _termos(texto: str) -> list[str]:
     texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii").lower()
     return re.findall(r"[a-z0-9]+", texto)
