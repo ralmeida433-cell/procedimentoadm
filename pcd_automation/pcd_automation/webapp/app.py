@@ -38,7 +38,7 @@ from pcd_automation.gestao_prazos import gerar_alertas_processo
 from pcd_automation.interativo import estado
 from pcd_automation.interativo.perguntas import ETAPAS, Etapa, indice_etapa, processo_concluido, proxima_etapa
 from pcd_automation.rag import consulta as rag_consulta
-from pcd_automation.redacao import validar_texto
+from pcd_automation.redacao import formatar_hora_br, validar_texto
 from pcd_automation.schema import CAMPOS_OBRIGATORIOS_INSTAURACAO
 from pcd_automation.validador_juridico import (
     validar_alertas_procedimentais,
@@ -126,6 +126,22 @@ CAMPOS_LONGOS = {
     "teor_depoimento", "observacoes_impedimento", "outras_provas",
 }
 
+# Campos de hora: no formulário viram um seletor de horário (HH:MM) e no
+# documento saem no padrão oficial "XXhXXmin" (a formatação é feita na geração).
+CAMPOS_HORA = {
+    "hora_fato", "hora_oitiva", "hora_inicio_depoimento", "hora_fim_depoimento",
+    "hora_proxima_oitiva", "hora_inicio_reuniao", "hora_fim_reuniao",
+}
+
+
+def _hora_para_input(valor) -> str:
+    """Converte um valor de hora salvo (em qualquer forma) para 'HH:MM', que é
+    o que o <input type=time> espera. Ex.: '8' -> '08:00', '1502' -> '15:02'."""
+    fmt = formatar_hora_br(valor)  # -> 'XXhXXmin' ou ''
+    if fmt and len(fmt) == 8 and fmt[2] == "h" and fmt.endswith("min"):
+        return f"{fmt[:2]}:{fmt[3:5]}"
+    return ""
+
 # Campos de texto livre em que vale checar a redação oficial (avisos, não erros).
 CAMPOS_REDACAO = CAMPOS_LONGOS | {
     "resumo_fato", "local_fato", "incidentes_processuais", "teor_depoimento",
@@ -190,6 +206,8 @@ def _valor_para_input(chave: str, dados: dict) -> str:
     _, tipo = CAMPOS_INFO.get(chave, (chave, "texto"))
     if valor in (None, ""):
         return ""
+    if chave in CAMPOS_HORA:
+        return _hora_para_input(valor)
     if tipo == "data" and isinstance(valor, date):
         return valor.isoformat()
     if tipo == "sim_nao":
@@ -198,6 +216,8 @@ def _valor_para_input(chave: str, dados: dict) -> str:
 
 
 def _tipo_para_template(chave: str, tipo: str) -> str:
+    if chave in CAMPOS_HORA:
+        return "hora"
     if chave in CAMPOS_OPCOES:
         return "select"
     return "texto_longo" if chave in CAMPOS_LONGOS else tipo

@@ -49,6 +49,8 @@
               </select>
             {% elif campo.tipo == 'data' %}
               <input type="date" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
+            {% elif campo.tipo == 'hora' %}
+              <input type="time" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
             {% elif campo.tipo == 'sim_nao' %}
               <select id="{{ campo.chave }}" name="{{ campo.chave }}">
                 <option value="" {{ 'selected' if campo.valor == '' else '' }}>-- não informado --</option>

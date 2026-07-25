@@ -50,6 +50,42 @@ def formatar_hora(hora: int, minuto: int = 0) -> str:
     return f"{hora}h{minuto:02d}min"
 
 
+def formatar_hora_br(valor) -> str:
+    """Normaliza uma hora digitada de várias formas para o padrão oficial da
+    PMMG em texto corrido: `XXhXXmin` (hora com 2 dígitos, minuto com 2
+    dígitos), ex.: "8" -> "08h00min", "8:30" -> "08h30min", "1502" ->
+    "15h02min", "8h30" -> "08h30min".
+
+    Aceita: só a hora ("8", "08"), HH:MM ("08:30"), HHhMM/HHhMMmin
+    ("8h30", "08h30min"), 4 dígitos do GDH ("0830"), e formas com texto
+    ("8 horas"). Valor vazio volta vazio; valor irreconhecível volta como
+    está (para não corromper um dado inesperado silenciosamente).
+    """
+    if valor is None:
+        return valor
+    s = str(valor).strip().lower()
+    if not s:
+        return s
+
+    # Já em XXhXXmin ou HHhMM(min) - normaliza o zero à esquerda da hora.
+    m = re.fullmatch(r"(\d{1,2})h(\d{2})(?:min)?", s)
+    if m:
+        return f"{int(m.group(1)):02d}h{m.group(2)}min"
+    # HH:MM
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", s)
+    if m:
+        return f"{int(m.group(1)):02d}h{m.group(2)}min"
+    # 4 dígitos contínuos (GDH): HHMM
+    m = re.fullmatch(r"(\d{2})(\d{2})", s)
+    if m:
+        return f"{m.group(1)}h{m.group(2)}min"
+    # Só a hora (com ou sem "horas"/"h" solto): usa minuto 00.
+    m = re.match(r"(\d{1,2})", s)
+    if m:
+        return f"{int(m.group(1)):02d}h00min"
+    return str(valor).strip()
+
+
 # ------------------------------------------------------------ validação de texto
 
 # Cada regra: (padrão compilado, mensagem de aviso). O texto é analisado e,

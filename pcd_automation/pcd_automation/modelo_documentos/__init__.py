@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from pcd_automation.redacao import formatar_hora_br
+
 from .campos_ata_cedmu import preparar_dados_ata_cedmu
 from .campos_comunicacao import preparar_dados_comunicacao
 from .campos_depoimento import preparar_dados_depoimento
@@ -25,8 +27,27 @@ TEMPLATE_OFICIO_REMESSA = _TEMPLATES_DIR / "oficio_remessa.docx"
 TEMPLATE_ATA_CEDMU = _TEMPLATES_DIR / "ata_reuniao_cedmu.docx"
 
 
+# Campos de hora que entram em texto corrido dos documentos - normalizados
+# de forma centralizada para o padrão oficial da PMMG "XXhXXmin" (ex.: "8" ou
+# "8:30" -> "08h00min"/"08h30min"), independentemente de como o usuário digitou.
+# Os modelos já têm o campo de hora ISOLADO (sem sufixo " horas"/"h00min"), de
+# modo que o valor formatado aqui é exatamente o que aparece no documento.
+_CAMPOS_HORA = (
+    "hora_fato", "hora_oitiva", "hora_inicio_depoimento", "hora_fim_depoimento",
+    "hora_proxima_oitiva", "hora_inicio_reuniao", "hora_fim_reuniao",
+)
+
+
+def _normalizar_horas(dados: dict) -> dict:
+    dados = dict(dados)
+    for campo in _CAMPOS_HORA:
+        if dados.get(campo):
+            dados[campo] = formatar_hora_br(dados[campo])
+    return dados
+
+
 def _gerar(template: Path, preparar_dados, dados: dict, caminho_saida) -> list[str]:
-    dados_template, pendentes_por_dado = preparar_dados(dados)
+    dados_template, pendentes_por_dado = preparar_dados(_normalizar_horas(dados))
     preencher_docx(template, dados_template, caminho_saida)
     return pendentes_por_dado
 
