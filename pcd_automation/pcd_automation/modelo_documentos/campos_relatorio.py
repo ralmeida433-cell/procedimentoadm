@@ -9,9 +9,32 @@ contrário fica marcado [PREENCHER] para redação manual no Word.
 """
 from __future__ import annotations
 
-from datetime import date
+import re
+from datetime import date, datetime
+
+from pcd_automation.redacao import formatar_gdh
 
 from .formatacao import MESES_PT, data_por_extenso
+
+
+def _gdh_do_fato(dados: dict, pendentes: list[str]) -> str:
+    """Monta o Grupo Data-Hora (GDH) do fato no padrão militar
+    `DDHHMMMesAA - Sem` (ex.: "050820Mar26 - Qui"), automaticamente a partir
+    da data e da hora do fato. Se o usuário informou `data_hora_militar_fato`
+    manualmente, respeita o valor informado. Sem data do fato, marca
+    [PREENCHER]. A `hora_fato` já chega normalizada como 'XXhXXmin'."""
+    if dados.get("data_hora_militar_fato"):
+        return str(dados["data_hora_militar_fato"])
+    data_fato = dados.get("data_fato")
+    if not data_fato:
+        pendentes.append("data/hora do fato no formato militar (GDH)")
+        return "[PREENCHER: data/hora do fato no formato militar (GDH)]"
+    m = re.fullmatch(r"(\d{2})h(\d{2})min", str(dados.get("hora_fato") or ""))
+    if m:
+        momento = datetime(data_fato.year, data_fato.month, data_fato.day, int(m.group(1)), int(m.group(2)))
+        return formatar_gdh(momento)
+    # Sem hora reconhecível: GDH só com a data.
+    return formatar_gdh(data_fato, com_hora=False)
 
 
 def preparar_dados_relatorio(dados: dict) -> tuple[dict, list[str]]:
@@ -50,9 +73,7 @@ def preparar_dados_relatorio(dados: dict) -> tuple[dict, list[str]]:
         "cidade_fato": preencher_ou_marcar("cidade_fato", "cidade do fato"),
         "hora_fato": preencher_ou_marcar("hora_fato", "hora aproximada do fato"),
         "resumo_fato": dados["resumo_fato"],
-        "data_hora_militar_fato": preencher_ou_marcar(
-            "data_hora_militar_fato", "data/hora do fato no formato interno da unidade"
-        ),
+        "data_hora_militar_fato": _gdh_do_fato(dados, pendentes),
         "em_servico_sindicado": "SIM" if dados.get("em_servico_sindicado") else "NÃO",
         "re_testemunha": preencher_ou_marcar("re_testemunha", "número de matrícula da testemunha"),
         "posto_testemunha": preencher_ou_marcar("posto_testemunha", "posto/graduação da testemunha"),
