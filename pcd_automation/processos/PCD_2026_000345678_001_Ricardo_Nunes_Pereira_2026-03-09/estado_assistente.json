@@ -1,0 +1,150 @@
+{
+  "etapa_concluida_ate": "cedmu",
+  "dados": {
+    "reds": "2026-000345678-001",
+    "nome_sindicado": "Ricardo Nunes Pereira",
+    "re_sindicado": "190.111-2",
+    "posto_graduacao_sindicado": "Cabo",
+    "unidade_sindicado": "34º BPM",
+    "data_fato": {
+      "__data__": "2026-03-05"
+    },
+    "cidade_fato": "Ouro Preto/MG",
+    "hora_fato": "8",
+    "local_fato": "Posto de serviço da 1ª Companhia do 34º BPM, em Ouro Preto/MG",
+    "resumo_fato": "deixado de comparecer ao serviço ordinário para o qual foi previamente escalado, ausentando-se sem justificativa legal",
+    "tipificacao_cedm": "art. 13, inciso II, do CEDM (Lei 14.310/2002)",
+    "nome_autoridade_processante": "Fernando Carlos Ribeiro",
+    "posto_autoridade_processante": "2º Sargento",
+    "re_autoridade_processante": "160.111-5",
+    "unidade_autoridade_processante": "34º BPM",
+    "estavel_autoridade_processante": true,
+    "nome_autoridade_delegante": "Eduardo Vasconcelos de Moraes",
+    "posto_autoridade_delegante": "Tenente-Coronel",
+    "data_instauracao": {
+      "__data__": "2026-03-09"
+    },
+    "numero_processo": "015",
+    "numero_regiao_pm": "5",
+    "numero_batalhao_pm": "34",
+    "numero_comunicacao_disciplinar": "015",
+    "numero_folhas_comunicacao_disciplinar": "6",
+    "numero_folhas_escala_servico": "2",
+    "cidade_sede": "Ouro Preto/MG",
+    "nome_comunicante": "Marcelo Andrade Lima",
+    "posto_comunicante": "1º Tenente",
+    "re_comunicante": "150.222-3",
+    "unidade_comunicante": "34º BPM",
+    "data_comunicacao": {
+      "__data__": "2026-03-06"
+    },
+    "prorrogado": true,
+    "data_conclusao_real": {
+      "__data__": "2026-04-02"
+    },
+    "nome_testemunha": "Bruno Lima Silva",
+    "posto_testemunha": "Soldado",
+    "re_testemunha": "190.222-3",
+    "unidade_testemunha": "34º BPM",
+    "bens_documentos_relacionados": "Cópia da escala de serviço da 1ª Cia (fls. 04/05)",
+    "data_citacao": {
+      "__data__": "2026-03-11"
+    },
+    "numero_folhas_autos_defesa_previa": "6",
+    "numero_folha_inicial_defesa_previa": "1",
+    "numero_folha_final_defesa_previa": "6",
+    "data_defesa_previa_apresentada": {
+      "__data__": "2026-03-16"
+    },
+    "numero_inciso_cedm": "II",
+    "numero_artigo_cedm": "13",
+    "data_oitiva": {
+      "__data__": "2026-03-18"
+    },
+    "hora_oitiva": "14",
+    "endereco_sede": "Praça Tiradentes, nº 50, Centro, Ouro Preto/MG",
+    "data_notificacao_testemunha": {
+      "__data__": "2026-03-13"
+    },
+    "data_notificacao_sindicado": {
+      "__data__": "2026-03-13"
+    },
+    "numero_ordem_testemunha": "1",
+    "nome_pai_testemunha": "Antônio Lima Silva",
+    "nome_mae_testemunha": "Marta Souza Silva",
+    "idade_testemunha": "29",
+    "data_nascimento_testemunha": {
+      "__data__": "1996-07-20"
+    },
+    "sexo_testemunha": "Masculino",
+    "nacionalidade_testemunha": "Brasileira",
+    "naturalidade_testemunha": "Mariana/MG",
+    "estado_civil_testemunha": "Solteiro",
+    "cpf_testemunha": "123.456.789-00",
+    "identidade_testemunha": "MG-18.345.678",
+    "local_trabalho_testemunha": "1ª Cia do 34º BPM",
+    "telefone_celular_testemunha": "(31) 98765-4321",
+    "telefone_residencial_testemunha": "Não possui",
+    "telefone_comercial_testemunha": "(31) 3555-1234",
+    "escolaridade_testemunha": "Ensino Médio Completo",
+    "teor_depoimento": "QUE estava de serviço na mesma data e presenciou que o comunicado não compareceu à formatura da guarda nem assumiu o posto para o qual havia sido escalado; QUE não teve notícia de justificativa apresentada pelo militar naquele dia.",
+    "hora_inicio_depoimento": "14",
+    "hora_fim_depoimento": "14h40min",
+    "nome_defensor_sindicado": "Não constituído (o comunicado optou por autodefesa)",
+    "data_vista_final": {
+      "__data__": "2026-03-23"
+    },
+    "numero_folhas_autos_red": "25",
+    "numero_folha_inicial_red": "1",
+    "numero_folha_final_red": "25",
+    "data_red_apresentada": {
+      "__data__": "2026-03-30"
+    },
+    "data_hora_militar_fato": "051352Mar26 - Qui",
+    "em_servico_sindicado": false,
+    "numero_folha_depoimento_testemunha": "20",
+    "objetos_apreendidos": "Nenhum",
+    "outras_provas": "Escala mensal de serviço de março/2026 (fls. 04/05)",
+    "analise_fatos_e_provas": "A prova documental (escala de serviço) e o depoimento da testemunha demonstram que o comunicado, escalado para o serviço ordinário do dia, não compareceu nem apresentou justificativa tempestiva, restando caracterizada a ausência ao serviço.",
+    "alegacoes_defesa_analise": "A defesa alegou problema de saúde, porém não juntou atestado médico ou qualquer documento que comprovasse a impossibilidade de comparecimento, razão pela qual a justificativa não merece acolhimento.",
+    "incidentes_processuais": "O prazo de conclusão foi prorrogado por mais 10 (dez) dias corridos, mediante justificativa fundamentada nos autos.",
+    "data_relatorio": {
+      "__data__": "2026-04-01"
+    },
+    "numero_oficio_remessa": "015",
+    "data_oficio_remessa": {
+      "__data__": "2026-04-02"
+    },
+    "numero_folhas_autos_final": "34",
+    "referencia_procedimento": "Despacho de Instauração nº 015/2026 - PCD/34º BPM",
+    "data_reuniao": {
+      "__data__": "2026-04-06"
+    },
+    "cidade_reuniao": "Ouro Preto/MG",
+    "local_reuniao": "Sala de reuniões do 34º BPM, na Praça Tiradentes, nº 50, Centro, Ouro Preto/MG",
+    "numero_conselho": "03/2026",
+    "numero_bie_conselho": "12",
+    "data_bie_conselho": {
+      "__data__": "2026-03-30"
+    },
+    "nome_presidente": "Carlos Alberto Menezes",
+    "posto_presidente": "1º Sargento",
+    "re_presidente": "145.777-8",
+    "nome_membro": "Paulo Sérgio Ramos",
+    "posto_membro": "2º Sargento",
+    "re_membro": "162.888-9",
+    "nome_escrivao": "Débora Cristina Alves",
+    "posto_escrivao": "3º Sargento",
+    "re_escrivao": "175.999-0",
+    "acusado_compareceu": false,
+    "qualificacao_acusado": "nº 190.111-2, Cb PM Ricardo Nunes Pereira",
+    "finalidade_texto": "Analisar e emitir parecer sobre o Processo de Comunicação Disciplinar instaurado por meio do Despacho nº 015/2026 - PCD/34º BPM, que apura a ausência ao serviço, em tese, praticada pelo Cb PM Ricardo Nunes Pereira.",
+    "verificacao_preliminar_texto": "Verificou-se que o militar foi regularmente notificado da reunião com a antecedência mínima de 48 (quarenta e oito) horas, e que não foram identificados vícios formais no procedimento apuratório.",
+    "fundamentacao_fatica_texto": "A instrução comprovou, pela escala de serviço e pelo depoimento testemunhal, que o comunicado não compareceu ao serviço para o qual fora escalado, sem justificativa hábil.",
+    "fundamentacao_legal_texto": "art. 13, inciso II, do Código de Ética e Disciplina dos Militares (Lei 14.310/2002).",
+    "analise_merito_texto": "Este Conselho, por unanimidade, entende caracterizada a transgressão disciplinar, uma vez que a defesa não apresentou prova da alegada impossibilidade de comparecimento.",
+    "parecer_texto": "Por unanimidade de votos, pela PROCEDÊNCIA da imputação, sugerindo-se o enquadramento e a punição do militar, com fulcro no art. 13, inciso II, do CEDM.",
+    "hora_inicio_reuniao": "16h00min",
+    "hora_fim_reuniao": "17h10min"
+  }
+}

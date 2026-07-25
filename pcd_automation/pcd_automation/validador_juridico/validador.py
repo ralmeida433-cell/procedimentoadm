@@ -200,9 +200,13 @@ def validar_numeracao_folhas(dados: dict) -> list[str]:
     problema, não desta checagem)."""
     alertas: list[str] = []
 
+    # Cada Termo de Abertura de Vista numera os autos "de 01 a N" (ambos os
+    # TAVs começam na folha 01), então NÃO se compara folha-inicial de um com
+    # folha-final do outro. O que só cresce é a folha FINAL / a contagem total
+    # de folhas dos autos, conforme documentos vão sendo juntados.
     pares = [
-        ("numero_folha_final_defesa_previa", "numero_folha_inicial_red",
-         "a folha final da Vista Inicial (defesa prévia) anteceder a folha inicial da Vista Final (RED)"),
+        ("numero_folha_final_defesa_previa", "numero_folha_final_red",
+         "a folha final da Vista Inicial (defesa prévia) ser menor ou igual à folha final da Vista Final (RED) - os autos só crescem"),
         ("numero_folhas_autos_defesa_previa", "numero_folhas_autos_red",
          "a contagem de folhas dos autos na Vista Inicial ser menor ou igual à da Vista Final (RED) - os autos só crescem"),
         ("numero_folhas_autos_red", "numero_folhas_autos_final",
