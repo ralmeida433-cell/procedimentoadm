@@ -141,19 +141,28 @@
     return bloco;
   }
 
-  function botaoAplicar(rotulo, campo, valor) {
+  // `pares` é uma lista de [campo, valor] - a tipificação preenche dois campos
+  // de uma vez (a própria tipificação e o resumo do fato reescrito), porque na
+  // prática um não vale sem o outro: o resumo tem de descrever a conduta com o
+  // vocabulário do inciso escolhido.
+  function botaoAplicar(rotulo, pares) {
     var b = el('button', rotulo, 'btn-mini');
     b.type = 'button';
     b.addEventListener('click', function () {
-      campo.value = valor;
-      campo.focus({ preventScroll: true });
+      var primeiro = null;
+      pares.forEach(function (par) {
+        if (!par[0] || !par[1]) return;
+        par[0].value = par[1];
+        if (!primeiro) primeiro = par[0];
+      });
+      if (primeiro) primeiro.focus({ preventScroll: true });
       b.textContent = 'aplicado';
       b.disabled = true;
     });
     return b;
   }
 
-  function blocoTipificacao(t) {
+  function blocoTipificacao(t, resumoSugerido) {
     var bloco = el('div', null, 'sugestao');
     var titulo = el('h4', t.tipificacao);
     titulo.appendChild(el('span', t.natureza, 'tag'));
@@ -162,7 +171,13 @@
     bloco.appendChild(el('blockquote', t.texto_documento));
     if (t.justificativa) bloco.appendChild(el('p', t.justificativa));
     if (t.confianca) bloco.appendChild(el('p', 'Confiança da sugestão: ' + t.confianca, 'legal'));
-    if (tipificacao) bloco.appendChild(botaoAplicar('Usar esta tipificação', tipificacao, t.texto_documento));
+    if (tipificacao) {
+      var pares = [[tipificacao, t.texto_documento], [resumo, resumoSugerido]];
+      bloco.appendChild(botaoAplicar('Usar esta tipificação', pares));
+      if (resumoSugerido) {
+        bloco.appendChild(el('p', 'Preenche também o resumo do fato com a redação sugerida acima.', 'legal'));
+      }
+    }
     return bloco;
   }
 
@@ -180,18 +195,20 @@
       var bloco = el('div', null, 'sugestao');
       bloco.appendChild(el('h4', 'Redação sugerida para o resumo do fato'));
       bloco.appendChild(el('blockquote', dados.resumo_fato));
-      bloco.appendChild(botaoAplicar('Usar este texto', resumo, dados.resumo_fato));
+      bloco.appendChild(botaoAplicar('Usar só este texto', [[resumo, dados.resumo_fato]]));
       painel.appendChild(bloco);
     }
 
-    (dados.tipificacoes || []).forEach(function (t) { painel.appendChild(blocoTipificacao(t)); });
+    (dados.tipificacoes || []).forEach(function (t) {
+      painel.appendChild(blocoTipificacao(t, dados.resumo_fato));
+    });
 
     if (!(dados.tipificacoes || []).length && (dados.candidatas || []).length) {
       var alt = el('div', null, 'sugestao');
       alt.appendChild(el('h4', 'Incisos do CEDM mais próximos (confira e escolha)'));
       dados.candidatas.forEach(function (c) {
         alt.appendChild(el('p', c.tipificacao + ' — “' + c.texto_legal + '”', 'legal'));
-        if (tipificacao) alt.appendChild(botaoAplicar('Usar este', tipificacao, c.texto_documento));
+        if (tipificacao) alt.appendChild(botaoAplicar('Usar este', [[tipificacao, c.texto_documento]]));
       });
       painel.appendChild(alt);
     }
