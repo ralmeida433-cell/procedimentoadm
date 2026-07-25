@@ -660,6 +660,8 @@ def analisar_fato():
             "tipificacoes": [
                 {
                     "tipificacao": t.tipificacao,
+                    # Texto que efetivamente vai para o campo e para o documento.
+                    "texto_documento": t.transgressao.texto_para_documento,
                     "natureza": t.transgressao.natureza,
                     "texto_legal": t.transgressao.texto,
                     "justificativa": t.justificativa,
@@ -668,7 +670,12 @@ def analisar_fato():
                 for t in r.tipificacoes
             ],
             "candidatas": [
-                {"tipificacao": c.tipificacao, "natureza": c.natureza, "texto_legal": c.texto}
+                {
+                    "tipificacao": c.tipificacao,
+                    "texto_documento": c.texto_para_documento,
+                    "natureza": c.natureza,
+                    "texto_legal": c.texto,
+                }
                 for c in r.candidatas
             ],
         }

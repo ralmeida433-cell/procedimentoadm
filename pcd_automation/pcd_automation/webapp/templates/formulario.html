@@ -158,10 +158,11 @@
     var titulo = el('h4', t.tipificacao);
     titulo.appendChild(el('span', t.natureza, 'tag'));
     bloco.appendChild(titulo);
-    bloco.appendChild(el('p', '“' + t.texto_legal + '”', 'legal'));
+    bloco.appendChild(el('p', 'Texto que será escrito no campo e sairá no Despacho e no Relatório:', 'legal'));
+    bloco.appendChild(el('blockquote', t.texto_documento));
     if (t.justificativa) bloco.appendChild(el('p', t.justificativa));
     if (t.confianca) bloco.appendChild(el('p', 'Confiança da sugestão: ' + t.confianca, 'legal'));
-    if (tipificacao) bloco.appendChild(botaoAplicar('Usar esta tipificação', tipificacao, t.tipificacao));
+    if (tipificacao) bloco.appendChild(botaoAplicar('Usar esta tipificação', tipificacao, t.texto_documento));
     return bloco;
   }
 
@@ -189,8 +190,8 @@
       var alt = el('div', null, 'sugestao');
       alt.appendChild(el('h4', 'Incisos do CEDM mais próximos (confira e escolha)'));
       dados.candidatas.forEach(function (c) {
-        var linha = el('p', c.tipificacao + ' — “' + c.texto_legal + '”', 'legal');
-        painel.appendChild(linha);
+        alt.appendChild(el('p', c.tipificacao + ' — “' + c.texto_legal + '”', 'legal'));
+        if (tipificacao) alt.appendChild(botaoAplicar('Usar este', tipificacao, c.texto_documento));
       });
       painel.appendChild(alt);
     }

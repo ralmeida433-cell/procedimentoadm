@@ -36,9 +36,26 @@ class Transgressao:
 
     @property
     def tipificacao(self) -> str:
-        """Tipificação no formato usado no campo `tipificacao_cedm` e nos
-        documentos gerados."""
+        """Citação seca do dispositivo, para títulos e listas na interface."""
         return f"art. {self.artigo}, inciso {self.inciso}, do CEDM (Lei 14.310/2002)"
+
+    @property
+    def texto_para_documento(self) -> str:
+        """Texto que vai para o campo `tipificacao_cedm` e, dali, para o
+        Despacho de Instauração e o Relatório do Encarregado.
+
+        Traz o dispositivo, a natureza da transgressão e a conduta com as
+        palavras da própria lei - é o que fundamenta a tipificação. Sai sem
+        ponto final de propósito: nos modelos ele entra depois de dois-pontos
+        ("Transgressão disciplinar, em tese, cometida: ___") e como aposto
+        depois de vírgula ("..., Cb PM NOME, ___;"), e um deles já imprime o
+        ponto em seguida. Por isso também não repete "transgressão
+        disciplinar": as duas frases-modelo já trazem o termo antes do campo.
+        """
+        return (
+            f"art. {self.artigo}, inciso {self.inciso}, do CEDM (Lei 14.310/2002), "
+            f"de natureza {self.natureza}, que tipifica a conduta de “{self.texto}”"
+        )
 
     @property
     def rotulo(self) -> str:
