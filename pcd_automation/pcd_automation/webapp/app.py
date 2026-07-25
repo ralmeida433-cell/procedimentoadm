@@ -47,6 +47,7 @@ from pcd_automation.validador_juridico import (
     validar_processo,
 )
 from pcd_automation.webapp.campos_ui import CAMPOS_OPCOES, GRUPOS_INSTAURACAO, TOOLTIPS, normalizar_posto
+from pcd_automation.webapp.cidades_mg import CIDADES_MG
 
 # Campos de posto/graduação sujeitos a normalização (abreviado -> forma canônica)
 # quando vêm de texto livre extraído de um documento (`/extrair`).
@@ -142,6 +143,12 @@ def _hora_para_input(valor) -> str:
         return f"{fmt[:2]}:{fmt[3:5]}"
     return ""
 
+
+# Campos de cidade: no formulário ganham autocompletar com os 853 municípios
+# de MG (via <datalist> nativo). É só sugestão - o usuário pode digitar
+# qualquer valor (ex.: uma cidade de outro estado na naturalidade).
+CAMPOS_CIDADE = {"cidade_fato", "cidade_sede", "cidade_reuniao", "naturalidade_testemunha"}
+
 # Campos de texto livre em que vale checar a redação oficial (avisos, não erros).
 CAMPOS_REDACAO = CAMPOS_LONGOS | {
     "resumo_fato", "local_fato", "incidentes_processuais", "teor_depoimento",
@@ -164,6 +171,7 @@ def _injetar_globals():
     return {
         "etapas_todas": ETAPAS,
         "login_ativo": _senha_configurada() is not None,
+        "cidades_mg": CIDADES_MG,
     }
 
 
@@ -218,6 +226,8 @@ def _valor_para_input(chave: str, dados: dict) -> str:
 def _tipo_para_template(chave: str, tipo: str) -> str:
     if chave in CAMPOS_HORA:
         return "hora"
+    if chave in CAMPOS_CIDADE:
+        return "cidade"
     if chave in CAMPOS_OPCOES:
         return "select"
     return "texto_longo" if chave in CAMPOS_LONGOS else tipo

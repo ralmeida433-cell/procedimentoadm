@@ -51,6 +51,8 @@
               <input type="date" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
             {% elif campo.tipo == 'hora' %}
               <input type="time" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" {{ 'required' if campo.obrigatorio else '' }}>
+            {% elif campo.tipo == 'cidade' %}
+              <input type="text" id="{{ campo.chave }}" name="{{ campo.chave }}" value="{{ campo.valor }}" list="cidades-mg" autocomplete="off" placeholder="Digite para buscar a cidade..." {{ 'required' if campo.obrigatorio else '' }}>
             {% elif campo.tipo == 'sim_nao' %}
               <select id="{{ campo.chave }}" name="{{ campo.chave }}">
                 <option value="" {{ 'selected' if campo.valor == '' else '' }}>-- não informado --</option>
@@ -73,4 +75,9 @@
     </div>
   </form>
 </div>
+
+{# Lista dos 853 municípios de MG para o autocompletar dos campos de cidade #}
+<datalist id="cidades-mg">
+  {% for c in cidades_mg %}<option value="{{ c }}"></option>{% endfor %}
+</datalist>
 {% endblock %}
