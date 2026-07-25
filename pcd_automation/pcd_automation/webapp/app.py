@@ -48,6 +48,7 @@ from pcd_automation.validador_juridico import (
 )
 from pcd_automation.webapp.campos_ui import CAMPOS_OPCOES, GRUPOS_INSTAURACAO, TOOLTIPS, normalizar_posto
 from pcd_automation.webapp.cidades_mg import CIDADES_MG
+from pcd_automation.webapp.unidades_pmmg import UNIDADES_PMMG
 
 # Campos de posto/graduação sujeitos a normalização (abreviado -> forma canônica)
 # quando vêm de texto livre extraído de um documento (`/extrair`).
@@ -149,6 +150,12 @@ def _hora_para_input(valor) -> str:
 # qualquer valor (ex.: uma cidade de outro estado na naturalidade).
 CAMPOS_CIDADE = {"cidade_fato", "cidade_sede", "cidade_reuniao", "naturalidade_testemunha"}
 
+# Campos de unidade: autocompletar com a base de unidades da PMMG (sugestão;
+# aceita texto livre para frações específicas fora da lista).
+CAMPOS_UNIDADE = {
+    "unidade_sindicado", "unidade_comunicante", "unidade_autoridade_processante", "unidade_testemunha",
+}
+
 # Campos de texto livre em que vale checar a redação oficial (avisos, não erros).
 CAMPOS_REDACAO = CAMPOS_LONGOS | {
     "resumo_fato", "local_fato", "incidentes_processuais", "teor_depoimento",
@@ -172,6 +179,7 @@ def _injetar_globals():
         "etapas_todas": ETAPAS,
         "login_ativo": _senha_configurada() is not None,
         "cidades_mg": CIDADES_MG,
+        "unidades_pmmg": UNIDADES_PMMG,
     }
 
 
@@ -228,6 +236,8 @@ def _tipo_para_template(chave: str, tipo: str) -> str:
         return "hora"
     if chave in CAMPOS_CIDADE:
         return "cidade"
+    if chave in CAMPOS_UNIDADE:
+        return "unidade"
     if chave in CAMPOS_OPCOES:
         return "select"
     return "texto_longo" if chave in CAMPOS_LONGOS else tipo
