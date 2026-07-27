@@ -21,13 +21,18 @@ tudo permanece editável, porque o processo é dinâmico.
 from __future__ import annotations
 
 import json
+import re
+import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from uuid import uuid4
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from werkzeug.utils import secure_filename
 
-from pcd_automation.webapp.campos_ui import OPCOES_POSTO
+from pcd_automation.extracao import EXTENSOES_SUPORTADAS, extrair_texto
+from pcd_automation.ia_cliente import chamar_openrouter
+from pcd_automation.webapp.campos_ui import OPCOES_POSTO, normalizar_posto
 
 bp_modulos = Blueprint("modulos", __name__, url_prefix="/modulos")
 
@@ -67,6 +72,8 @@ MODULOS: dict[str, dict] = {
                 {"chave": "unidade_proposto", "rotulo": "Unidade do Proposto", "tipo": "unidade", "obrigatorio": True},
             ]},
             {"titulo": "Dados da Recompensa", "campos": [
+                {"chave": "reds_recompensa", "rotulo": "Nº do REDS relacionado", "tipo": "texto", "obrigatorio": False,
+                 "tooltip": "REDS da ocorrência que motivou a proposta, se houver. Pode ser preenchido automaticamente pela análise de REDS com IA."},
                 {"chave": "tipo_recompensa", "rotulo": "Tipo de Recompensa", "tipo": "select", "obrigatorio": True,
                  "opcoes": ["Elogio Individual", "Elogio Coletivo", "Nota do Mérito", "Dispensa do Serviço"]},
                 {"chave": "sintese_justificativa", "rotulo": "Síntese do Fato / Justificativa", "tipo": "texto_longo", "obrigatorio": True,
@@ -331,3 +338,161 @@ def excluir(modulo_id, registro_id):
         action=url_for(".excluir", modulo_id=modulo_id, registro_id=registro_id),
         voltar=url_for(".lista", modulo_id=modulo_id),
     )
+
+
+# ------------------------------------------- análise de REDS -> propostas (IA)
+#
+# O encarregado carrega o PDF do REDS; a IA extrai os dados da ocorrência e
+# INDIVIDUALIZA a conduta de cada militar empenhado (um REDS quase sempre tem
+# mais de um militar, e a recompensa exige dizer o que CADA UM fez). O sistema
+# então cria uma proposta pré-preenchida por militar selecionado. Mesmo
+# princípio do resto do sistema: a IA não inventa dado que não esteja no
+# texto, e tudo o que ela redigir passa pela revisão do usuário na tela antes
+# de virar registro.
+
+PROMPT_REDS = """Você analisa um REDS (Registro de Eventos de Defesa Social) da PMMG para subsidiar \
+PROPOSTAS DE RECOMPENSA aos policiais militares que atuaram na ocorrência.
+
+TAREFA 1 - Extraia os dados da ocorrência: número do REDS, data do fato (formato ISO aaaa-mm-dd), \
+hora, município, local e um resumo objetivo do que aconteceu. NUNCA invente um dado que não esteja \
+no texto - se não encontrar, OMITA o campo do JSON.
+
+TAREFA 2 - Identifique CADA policial militar que atuou na ocorrência (normalmente no histórico e no \
+campo de militares empenhados/responsáveis), com posto/graduação, nome completo, número de matrícula \
+e unidade, quando constarem do texto. Não inclua vítimas, autores, testemunhas civis nem militares \
+apenas citados sem atuação.
+
+TAREFA 3 - INDIVIDUALIZE a conduta: para cada militar, descreva em "conduta_individual" o que ELE \
+especificamente fez segundo o histórico (quem abordou, quem conteve o agressor, quem prestou os \
+primeiros socorros, quem negociou, quem localizou o material...). Se o histórico não distinguir as \
+ações entre os militares, diga expressamente que a atuação foi conjunta - não distribua ações \
+inventadas.
+
+TAREFA 4 - Para cada militar, redija "sintese_proposta": um parágrafo em redação oficial impessoal \
+da PMMG, pronto para fundamentar a proposta de recompensa, combinando o fato e a conduta individual \
+daquele militar. Restrições: sem juízo de valor exagerado, sem inventar circunstância que não esteja \
+no texto; horas no formato XXhXXmin (nunca "19:30" nem "19hs"); não use "o mesmo/a mesma" como \
+pronome; sem gerundismo.
+
+Liste em "observacoes" qualquer ressalva (trechos ilegíveis, militar sem matrícula no texto, dúvida \
+sobre quem fez o quê).
+
+Responda SOMENTE com um objeto JSON válido, sem markdown, exatamente neste formato:
+{"reds": "...", "data_fato": "aaaa-mm-dd", "hora_fato": "...", "municipio": "...", "local_fato": "...", \
+"resumo_ocorrencia": "...", "militares": [{"posto": "...", "nome": "...", "numero": "...", \
+"unidade": "...", "conduta_individual": "...", "sintese_proposta": "..."}], "observacoes": ["..."]}
+"""
+
+
+def _extrair_json_ia(texto: str) -> dict:
+    texto = re.sub(r"^```(?:json)?\s*|\s*```$", "", (texto or "").strip(), flags=re.IGNORECASE)
+    return json.loads(texto)
+
+
+def analisar_reds_texto(texto: str) -> tuple[dict | None, str | None]:
+    """Analisa o texto extraído de um REDS. Retorna (resultado, erro) -
+    exatamente um dos dois é None."""
+    if not texto.strip():
+        return None, (
+            "Não foi possível extrair nenhum texto do arquivo (pode estar em branco, corrompido ou "
+            "o OCR não reconheceu nada)."
+        )
+    conteudo, erro = chamar_openrouter(
+        [
+            {"role": "system", "content": PROMPT_REDS},
+            {"role": "user", "content": f"Texto extraído do REDS:\n\n{texto[:150000]}"},
+        ],
+        max_tokens=6000,
+        timeout=120,
+        json_obrigatorio=True,
+    )
+    if erro:
+        return None, erro
+    try:
+        dados = _extrair_json_ia(conteudo)
+    except json.JSONDecodeError:
+        return None, f"A IA não retornou um JSON válido. Resposta bruta: {conteudo[:400]}"
+
+    # Normaliza o posto de cada militar para o valor canônico dos <select>.
+    for militar in dados.get("militares") or []:
+        if isinstance(militar, dict) and militar.get("posto"):
+            militar["posto"] = normalizar_posto(str(militar["posto"]))
+    return dados, None
+
+
+@bp_modulos.route("/recompensa/reds", methods=["GET", "POST"])
+def reds_recompensa():
+    """Upload do REDS (PDF/DOCX/imagem) e análise por IA para propor
+    recompensas com a conduta individualizada de cada militar."""
+    if request.method == "GET":
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=None)
+
+    arquivo = request.files.get("arquivo")
+    if arquivo is None or not arquivo.filename:
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro="Selecione o arquivo do REDS (PDF, DOCX ou imagem).")
+
+    nome_seguro = secure_filename(arquivo.filename)
+    sufixo = Path(nome_seguro).suffix.lower()
+    if sufixo not in EXTENSOES_SUPORTADAS:
+        return render_template(
+            "modulo_reds.html", resultado=None,
+            erro=f"Extensão não suportada: {sufixo or '(sem extensão)'} (aceitos: {', '.join(sorted(EXTENSOES_SUPORTADAS))}).",
+        )
+
+    caminho_temp = Path(tempfile.mkdtemp(prefix="reds_")) / nome_seguro
+    try:
+        arquivo.save(caminho_temp)
+        texto = extrair_texto(caminho_temp)
+    except Exception as exc:
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=f"Falha ao ler o arquivo: {exc}")
+    finally:
+        caminho_temp.unlink(missing_ok=True)
+        caminho_temp.parent.rmdir()
+
+    resultado, erro = analisar_reds_texto(texto)
+    if erro:
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=erro)
+    if not resultado.get("militares"):
+        erro = (
+            "A IA não identificou nenhum policial militar atuando na ocorrência. Confira se o arquivo "
+            "é mesmo um REDS legível" + (
+                " Observações: " + "; ".join(str(o) for o in resultado.get("observacoes") or [])
+                if resultado.get("observacoes") else "."
+            )
+        )
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=erro)
+    return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=resultado, erro=None)
+
+
+@bp_modulos.route("/recompensa/reds/criar", methods=["POST"])
+def criar_propostas_reds():
+    """Cria uma Proposta de Recompensa por militar selecionado na tela de
+    análise do REDS, com os textos já revisados/editados pelo usuário."""
+    definicao = MODULOS["recompensa"]
+    # Proponente: mesmo autofill do formulário novo (último registro salvo).
+    valores_base, _ = _valores_autofill("recompensa", definicao)
+
+    try:
+        total = int(request.form.get("total") or 0)
+    except ValueError:
+        total = 0
+
+    criados = 0
+    for i in range(total):
+        if not request.form.get(f"sel-{i}"):
+            continue
+        dados = dict(valores_base)
+        dados.update({
+            "posto_proposto": (request.form.get(f"m-{i}-posto") or "").strip(),
+            "numero_proposto": (request.form.get(f"m-{i}-numero") or "").strip(),
+            "nome_proposto": (request.form.get(f"m-{i}-nome") or "").strip(),
+            "unidade_proposto": (request.form.get(f"m-{i}-unidade") or "").strip(),
+            "sintese_justificativa": (request.form.get(f"m-{i}-sintese") or "").strip(),
+            "reds_recompensa": (request.form.get("reds") or "").strip(),
+            "tipo_recompensa": dados.get("tipo_recompensa") or "Elogio Individual",
+            "data_proposta": date.today().isoformat(),
+        })
+        _salvar_registro("recompensa", uuid4().hex[:8], dados)
+        criados += 1
+
+    return redirect(url_for(".lista", modulo_id="recompensa"))

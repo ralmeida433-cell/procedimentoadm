@@ -22,6 +22,9 @@
 
   <div class="acoes">
     <a class="btn btn-primario" href="{{ url_for('modulos.novo', modulo_id=modulo_id) }}">+ Novo registro</a>
+    {% if modulo_id == 'recompensa' %}
+      <a class="btn btn-secundario" href="{{ url_for('modulos.reds_recompensa') }}">Analisar REDS com IA (preenche sozinho)</a>
+    {% endif %}
     <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
   </div>
 </div>
