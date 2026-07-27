@@ -44,4 +44,31 @@
   <a class="btn btn-primario" href="{{ url_for('pcd.novo') }}">+ Criar novo PCD</a>
   <a class="btn btn-secundario" href="{{ url_for('pcd.extrair') }}">Extrair dados de documento existente</a>
 </div>
+
+{# Seção aditiva: módulos além do PCD (blueprint "modulos", modulos_extra.py). #}
+<div class="cartao">
+  <h2>Outros procedimentos</h2>
+  <ul class="documentos">
+    <li class="item-lista">
+      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">Proposta de Recompensa</a>
+      <span style="color:var(--texto-suave); font-size:.85rem;">elogio, nota do mérito, dispensa do serviço</span>
+      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='recompensa') }}">+ Novo</a>
+    </li>
+    <li class="item-lista">
+      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='rip') }}">RIP - Relatório de Investigação Preliminar</a>
+      <span style="color:var(--texto-suave); font-size:.85rem;">apuração preliminar de fato</span>
+      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='rip') }}">+ Novo</a>
+    </li>
+    <li class="item-lista">
+      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='sad') }}">SAD - Sindicância Administrativa Disciplinar</a>
+      <span style="color:var(--texto-suave); font-size:.85rem;">portaria, sindicado e objeto</span>
+      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='sad') }}">+ Novo</a>
+    </li>
+    <li class="item-lista">
+      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='apf') }}">APF - Auto de Prisão em Flagrante</a>
+      <span style="color:var(--texto-suave); font-size:.85rem;">partes, dinâmica e materiais apreendidos</span>
+      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='apf') }}">+ Novo</a>
+    </li>
+  </ul>
+</div>
 {% endblock %}

@@ -852,4 +852,8 @@ def criar_app(diretorio_base: Path | str) -> Flask:
     # funciona, mas desloga todo mundo a cada reinício do servidor.
     app.config["SECRET_KEY"] = os.environ.get("PCD_SECRET_KEY") or secrets.token_hex(32)
     app.register_blueprint(bp)
+    # Módulos adicionais (Recompensa, RIP, SAD, APF) - blueprint separado,
+    # nada do PCD é alterado por ele. Import tardio para evitar ciclo.
+    from pcd_automation.webapp.modulos_extra import bp_modulos
+    app.register_blueprint(bp_modulos)
     return app
