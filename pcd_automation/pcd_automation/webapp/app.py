@@ -209,6 +209,10 @@ def _processar_formulario(etapa: Etapa, form) -> dict:
     return {chave: _valor_formulario(chave, form) for chave in etapa.campos_obrigatorios + etapa.campos_opcionais}
 
 
+def _processar_campos(chaves: list[str], form) -> dict:
+    return {chave: _valor_formulario(chave, form) for chave in chaves}
+
+
 def _campos_faltando(etapa: Etapa, dados: dict) -> list[str]:
     faltando = []
     for chave in etapa.campos_obrigatorios:
@@ -298,6 +302,39 @@ def _grupos_para_template(etapa: Etapa, dados: dict) -> list[dict]:
             "titulo": "Campos opcionais",
             "campos": [_campo_dict(c, False, dados) for c in etapa.campos_opcionais],
         })
+    return grupos
+
+
+def _grupos_revisao(dados: dict, etapa_ate: str) -> list[dict]:
+    """Agrupa, para revisão, TODOS os campos já perguntados até a etapa
+    concluída - não só os da etapa em que o processo está agora.
+
+    Existe porque vários dados são coletados uma única vez (ex.: nome do
+    encarregado na instauração) e alimentam documentos de etapas bem mais à
+    frente (Relatório, Ofício, Ata do CEDMU). Sem esta tela, corrigir um deles
+    depois de passada a etapa em que foram perguntados não tinha caminho
+    nenhum na interface - só editando o JSON de estado à mão. O processo
+    administrativo é dinâmico (ex.: o encarregado pode ser substituído por
+    portaria no meio do trâmite) e o sistema não pode travar essa correção.
+
+    Um mesmo campo pode aparecer nas listas de mais de uma etapa (ex.:
+    `nome_testemunha` em "oitiva" e "depoimento", `numero_inciso_cedm` em
+    "vista_inicial" e "vista_final") - nesses casos ele já é reaproveitado
+    automaticamente pelo formulário normal de cada etapa (todas leem do mesmo
+    dict `dados`), então aqui ele só é listado uma vez, sob a etapa que
+    primeiro o pergunta, para não duplicar a entrada na tela de revisão.
+    """
+    indice_ate = indice_etapa(etapa_ate)
+    grupos: list[dict] = []
+    ja_incluidos: set[str] = set()
+    for etapa in ETAPAS[: indice_ate + 1]:
+        for grupo in _grupos_para_template(etapa, dados):
+            campos_novos = [c for c in grupo["campos"] if c["chave"] not in ja_incluidos]
+            ja_incluidos.update(c["chave"] for c in campos_novos)
+            if not campos_novos:
+                continue
+            titulo = grupo["titulo"] if etapa.id == "instauracao" else f"{etapa.titulo} — {grupo['titulo']}"
+            grupos.append({"titulo": titulo, "campos": campos_novos})
     return grupos
 
 
@@ -517,6 +554,45 @@ def status_processo(processo_id):
         "status.html", processo_id=processo_id, etapa_atual_titulo=ETAPAS[indice_atual].titulo,
         proxima=proxima, documentos=documentos, concluido=(proxima is None),
         linhas=_campos_preenchidos(dados), alertas_prazo=alertas_prazo,
+    )
+
+
+@bp.route("/processo/<processo_id>/dados", methods=["GET", "POST"])
+def revisar_dados(processo_id):
+    """Revisa/corrige qualquer dado já coletado do processo, de qualquer
+    etapa já concluída - não só o da etapa em que ele está agora.
+
+    Ao contrário de `formulario_etapa` (que serve para AVANÇAR o processo e
+    aciona `etapa.funcao`, gerando os documentos daquela etapa), esta tela só
+    corrige o dict `dados` salvo em `estado_assistente.json`. Não reexecuta
+    nenhuma geração: documentos já emitidos (ex.: um Despacho já assinado)
+    não são reescritos silenciosamente - é a mesma lógica de uma portaria já
+    publicada, que se corrige com um novo ato, não reescrevendo o original.
+    A correção feita aqui vale para os documentos AINDA NÃO gerados deste
+    processo (ex.: mudar o encarregado antes do Relatório ser escrito).
+    """
+    diretorio_base = _diretorio_base()
+    diretorio_processo = diretorio_base / processo_id
+    carregado = estado.carregar_estado_processo(diretorio_processo)
+    if carregado is None:
+        abort(404)
+    dados, etapa_ate = carregado
+    indice_ate = indice_etapa(etapa_ate)
+    todas_as_chaves = [
+        chave
+        for etapa in ETAPAS[: indice_ate + 1]
+        for chave in etapa.campos_obrigatorios + etapa.campos_opcionais
+    ]
+
+    if request.method == "POST":
+        dados_atualizados = {**dados, **_processar_campos(todas_as_chaves, request.form)}
+        estado.salvar_estado_processo(diretorio_processo, dados_atualizados, etapa_concluida_ate=etapa_ate)
+        return redirect(url_for(".status_processo", processo_id=processo_id))
+
+    return render_template(
+        "formulario.html", etapa=None, grupos=_grupos_revisao(dados, etapa_ate), erros=[],
+        action=url_for(".revisar_dados", processo_id=processo_id),
+        titulo="Revisar e corrigir dados do processo", modo_revisao=True,
     )
 
 

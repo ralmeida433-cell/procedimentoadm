@@ -44,6 +44,7 @@
     {% else %}
       <span class="badge badge-concluido">Processo concluído</span>
     {% endif %}
+    <a class="btn btn-secundario" href="{{ url_for('pcd.revisar_dados', processo_id=processo_id) }}">Revisar/corrigir dados já informados</a>
     <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
   </div>
 </div>

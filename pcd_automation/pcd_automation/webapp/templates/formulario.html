@@ -3,7 +3,7 @@
 {% block conteudo %}
 <div class="etapas">
   {% for e in etapas_todas %}
-    <span class="{{ 'atual' if e.id == etapa.id else '' }}">{{ e.titulo }}</span>
+    <span class="{{ 'atual' if etapa and e.id == etapa.id else '' }}">{{ e.titulo }}</span>
   {% endfor %}
 </div>
 
@@ -13,6 +13,16 @@
     Campos marcados com <span style="color:var(--erro); font-weight:700;">*</span> são obrigatórios.
     Passe o mouse sobre o ícone <span class="dica-icone" aria-hidden="true">?</span> para ver a orientação normativa.
   </p>
+
+  {% if modo_revisao %}
+    <div class="caixa caixa-aviso">
+      Isto corrige os dados salvos do processo - não reescreve nenhum documento .docx já gerado.
+      Se algo aqui já saiu em um documento emitido (ex.: o nome do encarregado no Despacho já
+      assinado), a correção só vale a partir de agora, para os próximos documentos deste processo;
+      o já emitido continua valendo até ser formalmente substituído (ex.: portaria de substituição
+      de encarregado).
+    </div>
+  {% endif %}
 
   {% if erros %}
     <div class="caixa caixa-erro">
