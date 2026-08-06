@@ -50,6 +50,51 @@
     <form method="post" action="{{ url_for('modulos.criar_propostas_reds') }}">
       <input type="hidden" name="total" value="{{ resultado.militares | length }}">
       <input type="hidden" name="reds" value="{{ resultado.reds or '' }}">
+      <input type="hidden" name="data_fato" value="{{ resultado.data_fato or '' }}">
+
+      <fieldset class="grupo-campos">
+        <legend>Dados do documento oficial</legend>
+        <div class="campo">
+          <label for="linha_regiao">Região de Polícia Militar (cabeçalho)</label>
+          <input type="text" id="linha_regiao" name="linha_regiao" placeholder="Ex.: 3ª REGIÃO DE POLÍCIA MILITAR">
+        </div>
+        <div class="campo">
+          <label for="linha_unidade">Unidade (cabeçalho)</label>
+          <input type="text" id="linha_unidade" name="linha_unidade" list="unidades-pmmg" autocomplete="off" placeholder="Ex.: 1ª CIA IND PM">
+        </div>
+        <div class="campo">
+          <label for="cidade_sede">Cidade do quartel</label>
+          <input type="text" id="cidade_sede" name="cidade_sede" list="cidades-mg" autocomplete="off" value="{{ (resultado.municipio or '').split('/')[0] }}">
+        </div>
+        <div class="campo">
+          <label for="destinatario">Destinatário (após "Ao Senhor")</label>
+          <input type="text" id="destinatario" name="destinatario" placeholder="Ex.: Comandante da 1ª Cia Ind PM">
+        </div>
+        <div class="campo">
+          <label for="tipo_recompensa">Tipo de recompensa</label>
+          <select id="tipo_recompensa" name="tipo_recompensa">
+            {% for t in ["Elogio Individual", "Elogio Coletivo", "Nota do Mérito", "Dispensa do Serviço"] %}
+              <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="campo">
+          <label for="local_fato_linha">Local do fato (item 2 do documento)</label>
+          <input type="text" id="local_fato_linha" name="local_fato_linha" value="{{ resultado.local_fato or '' }}{% if resultado.local_fato and resultado.municipio %} - {{ resultado.municipio }}{% endif %}">
+        </div>
+        <div class="campo">
+          <label for="descricao">Descrição sucinta do ocorrido (narrativa administrativa; separe os parágrafos com linha em branco)</label>
+          <textarea id="descricao" name="descricao" style="min-height:14rem;">{{ (resultado.descricao_administrativa or []) | join('\n\n') }}</textarea>
+        </div>
+        <div class="campo">
+          <label for="proponente_assinatura">Assinatura do proponente/interessado (NOME, POSTO.)</label>
+          <input type="text" id="proponente_assinatura" name="proponente_assinatura" placeholder="Ex.: BRUNO ESTEVES MATOS, 2º TEN.">
+        </div>
+        <div class="campo">
+          <label for="anexos">Anexos/reportagens (um por linha: TÍTULO – link)</label>
+          <textarea id="anexos" name="anexos" placeholder="REPORTAGEM JORNAL X – https://...&#10;STREAMING Y – https://..."></textarea>
+        </div>
+      </fieldset>
 
       {% for m in resultado.militares %}
         <fieldset class="grupo-campos">
@@ -83,18 +128,34 @@
             <label for="m-{{ loop.index0 }}-unidade">Unidade</label>
             <input type="text" id="m-{{ loop.index0 }}-unidade" name="m-{{ loop.index0 }}-unidade" value="{{ m.unidade or '' }}" list="unidades-pmmg" autocomplete="off">
           </div>
+          <div class="campo">
+            <label for="m-{{ loop.index0 }}-funcao">Função na ocorrência</label>
+            <input type="text" id="m-{{ loop.index0 }}-funcao" name="m-{{ loop.index0 }}-funcao" value="{{ m.funcao or '' }}" placeholder="Ex.: Comandante de guarnição, Motorista, P2, Patrulheiro...">
+          </div>
           {% if m.conduta_individual %}
             <p style="font-size:.85rem; color:var(--texto-suave);"><strong>Conduta individualizada:</strong> {{ m.conduta_individual }}</p>
           {% endif %}
           <div class="campo">
-            <label for="m-{{ loop.index0 }}-sintese">Síntese da proposta (revise antes de criar)</label>
+            <label for="m-{{ loop.index0 }}-sintese">Individualização da conduta (revise; este texto vai para o documento)</label>
             <textarea id="m-{{ loop.index0 }}-sintese" name="m-{{ loop.index0 }}-sintese">{{ m.sintese_proposta or '' }}</textarea>
+          </div>
+          <div class="campo">
+            <span style="font-weight:600; font-size:.9rem;">Requisitos de concessão atendidos (quadro Sim/Não do documento):</span>
+            {% set reqs = m.requisitos or {} %}
+            {% set mi = loop.index0 %}
+            {% for chave, rotulo in requisitos_lista %}
+              <label style="display:block; font-weight:400; font-size:.85rem; cursor:pointer;">
+                <input type="checkbox" name="m-{{ mi }}-req-{{ chave }}" value="1" {{ 'checked' if reqs.get(chave) else '' }}>
+                {{ rotulo }}
+              </label>
+            {% endfor %}
           </div>
         </fieldset>
       {% endfor %}
 
       <div class="acoes">
-        <button type="submit" class="btn btn-primario">Criar propostas para os militares selecionados</button>
+        <button type="submit" name="gerar_documento" value="1" class="btn btn-primario">Criar propostas + gerar documento oficial (.docx)</button>
+        <button type="submit" class="btn btn-secundario">Criar só os registros (sem documento)</button>
         <a class="btn btn-secundario" href="{{ url_for('modulos.reds_recompensa') }}">Analisar outro REDS</a>
         <a class="btn btn-secundario" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">Cancelar</a>
       </div>
@@ -104,5 +165,8 @@
 
 <datalist id="unidades-pmmg">
   {% for valor, descricao in unidades_pmmg %}<option value="{{ valor }}" label="{{ descricao }}"></option>{% endfor %}
+</datalist>
+<datalist id="cidades-mg">
+  {% for c in cidades_mg %}<option value="{{ c }}"></option>{% endfor %}
 </datalist>
 {% endblock %}

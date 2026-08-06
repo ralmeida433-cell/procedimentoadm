@@ -7,9 +7,10 @@ por duas linhas aditivas em criar_app() (registro do blueprint) e uma seção
 nova no dashboard.html.
 
 Escopo atual: formulários de ENTRADA de dados com persistência em JSON
-(`processos/_modulos/<modulo>/<id>.json`) - ainda não geram documento .docx
-(não há modelos oficiais desses procedimentos no projeto; quando houver,
-a geração pluga aqui sem mexer no PCD).
+(`processos/_modulos/<modulo>/<id>.json`). A Proposta de Recompensa também
+GERA o documento oficial (.docx) a partir do modelo da PMMG - ver
+`gerador_recompensa.py` e o fluxo de análise de REDS abaixo. RIP/SAD/APF
+seguem só com registro de dados até haver modelo oficial de cada um.
 
 Autofill inteligente e editável: não existe cadastro de usuário logado (o
 login do app é uma senha única, sem perfis), então o auto-preenchimento usa
@@ -27,10 +28,16 @@ from datetime import date, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import (
+    Blueprint, abort, current_app, redirect, render_template, request,
+    send_from_directory, url_for,
+)
 from werkzeug.utils import secure_filename
 
 from pcd_automation.extracao import EXTENSOES_SUPORTADAS, extrair_texto
+from pcd_automation.gerador_recompensa import (
+    REQUISITOS_RECOMPENSA, MilitarProposta, gerar_documento_recompensa, montar_contexto,
+)
 from pcd_automation.ia_cliente import chamar_openrouter
 from pcd_automation.webapp.campos_ui import OPCOES_POSTO, normalizar_posto
 
@@ -264,7 +271,11 @@ def lista(modulo_id):
         {"id": r["id"], "resumo": _resumo_registro(definicao, r.get("dados") or {}), "criado_em": r.get("criado_em")}
         for r in _listar_registros(modulo_id)
     ]
-    return render_template("modulo_lista.html", modulo_id=modulo_id, definicao=definicao, registros=registros)
+    documentos = listar_documentos_recompensa() if modulo_id == "recompensa" else []
+    return render_template(
+        "modulo_lista.html", modulo_id=modulo_id, definicao=definicao,
+        registros=registros, documentos=documentos,
+    )
 
 
 @bp_modulos.route("/<modulo_id>/novo", methods=["GET", "POST"])
@@ -359,8 +370,9 @@ no texto - se não encontrar, OMITA o campo do JSON.
 
 TAREFA 2 - Identifique CADA policial militar que atuou na ocorrência (normalmente no histórico e no \
 campo de militares empenhados/responsáveis), com posto/graduação, nome completo, número de matrícula \
-e unidade, quando constarem do texto. Não inclua vítimas, autores, testemunhas civis nem militares \
-apenas citados sem atuação.
+e unidade, quando constarem do texto. NÃO OMITA NENHUM militar empenhado - numa proposta de \
+recompensa, militar esquecido é militar sem elogio; confira a lista completa antes de responder. Não \
+inclua vítimas, autores, testemunhas civis nem militares apenas citados sem atuação.
 
 TAREFA 3 - INDIVIDUALIZE a conduta: para cada militar, descreva em "conduta_individual" o que ELE \
 especificamente fez segundo o histórico (quem abordou, quem conteve o agressor, quem prestou os \
@@ -374,13 +386,43 @@ daquele militar. Restrições: sem juízo de valor exagerado, sem inventar circu
 no texto; horas no formato XXhXXmin (nunca "19:30" nem "19hs"); não use "o mesmo/a mesma" como \
 pronome; sem gerundismo.
 
+TAREFA 5 - Identifique a FUNÇÃO de cada militar na ocorrência, escolhendo a mais específica que o \
+texto sustentar: "Comandante da operação", "Comandante de guarnição", "Motorista", "Patrulheiro", \
+"P2", "ROCCA", "CPU", "ROTAM", "POP", ou outra função que o REDS evidencie. Se não houver como saber, \
+use "Patrulheiro".
+
+TAREFA 6 - Avalie, para cada militar, os requisitos de concessão de recompensa do modelo oficial da \
+PMMG, devolvendo true/false em "requisitos" com ESTAS chaves exatas:
+- "acao_consciente": ação consciente e voluntária;
+- "risco_vida": risco à vida ou à integridade física;
+- "transcendencia": transcendência da ação em audácia e coragem com obtenção de pleno sucesso;
+- "inteligencia": inteligência e perspicácia no planejamento e na ação;
+- "sem_conduta_negativa": inexistência de conduta negativa ou ilícita NA OCORRÊNCIA (a ficha \
+disciplinar não está no REDS - avalie só o que o texto mostra);
+- "repercussao_positiva": repercussão positiva na comunidade/imprensa - só true se o texto mencionar \
+divulgação ou repercussão;
+- "inovacao_complexidade": inovação ou execução de atividade de extremo grau de dificuldade;
+- "atuacao_alem_unidade": atuação destacada com efeitos além da Unidade.
+Marque true SOMENTE com base no que o REDS sustenta para AQUELE militar - requisito sem evidência é false.
+
+TAREFA 7 - Redija em "descricao_administrativa" a seção "Descrição sucinta do ocorrido" do documento \
+oficial: uma lista de 3 a 6 parágrafos em narrativa ADMINISTRATIVA de alto nível (não é cópia do \
+histórico do REDS nem linguagem policial de boletim). Organize cronologicamente: contexto e \
+planejamento; desenvolvimento da ação; resultado operacional (prisões e apreensões, com quantidades \
+exatas do REDS); impacto para a comunidade e repercussão institucional. Impessoal, sem exageros, sem \
+inventar fato, horas no formato XXhXXmin.
+
 Liste em "observacoes" qualquer ressalva (trechos ilegíveis, militar sem matrícula no texto, dúvida \
 sobre quem fez o quê).
 
 Responda SOMENTE com um objeto JSON válido, sem markdown, exatamente neste formato:
 {"reds": "...", "data_fato": "aaaa-mm-dd", "hora_fato": "...", "municipio": "...", "local_fato": "...", \
-"resumo_ocorrencia": "...", "militares": [{"posto": "...", "nome": "...", "numero": "...", \
-"unidade": "...", "conduta_individual": "...", "sintese_proposta": "..."}], "observacoes": ["..."]}
+"natureza": "...", "resumo_ocorrencia": "...", "descricao_administrativa": ["...", "..."], \
+"militares": [{"posto": "...", "nome": "...", "numero": "...", "unidade": "...", "funcao": "...", \
+"conduta_individual": "...", "sintese_proposta": "...", "requisitos": {"acao_consciente": true, \
+"risco_vida": false, "transcendencia": false, "inteligencia": false, "sem_conduta_negativa": true, \
+"repercussao_positiva": false, "inovacao_complexidade": false, "atuacao_alem_unidade": false}}], \
+"observacoes": ["..."]}
 """
 
 
@@ -389,29 +431,64 @@ def _extrair_json_ia(texto: str) -> dict:
     return json.loads(texto)
 
 
-def analisar_reds_texto(texto: str) -> tuple[dict | None, str | None]:
-    """Analisa o texto extraído de um REDS. Retorna (resultado, erro) -
-    exatamente um dos dois é None."""
-    if not texto.strip():
-        return None, (
-            "Não foi possível extrair nenhum texto do arquivo (pode estar em branco, corrompido ou "
-            "o OCR não reconheceu nada)."
-        )
+# Matrícula de militar no padrão da PMMG ("130.555-1"). Usada como contagem
+# independente de quantos militares o REDS menciona - é o cross-check
+# determinístico contra a IA omitir alguém da lista.
+_RE_MATRICULA = re.compile(r"\b\d{3}\.\d{3}-\d\b")
+
+
+def _chamar_analise_reds(texto: str) -> tuple[dict | None, str | None]:
     conteudo, erro = chamar_openrouter(
         [
             {"role": "system", "content": PROMPT_REDS},
             {"role": "user", "content": f"Texto extraído do REDS:\n\n{texto[:150000]}"},
         ],
-        max_tokens=6000,
-        timeout=120,
+        # Um REDS de operação grande pode ter 15+ militares, cada um com
+        # individualização + requisitos - a resposta é longa.
+        max_tokens=16000,
+        timeout=240,
         json_obrigatorio=True,
     )
     if erro:
         return None, erro
     try:
-        dados = _extrair_json_ia(conteudo)
+        return _extrair_json_ia(conteudo), None
     except json.JSONDecodeError:
         return None, f"A IA não retornou um JSON válido. Resposta bruta: {conteudo[:400]}"
+
+
+def analisar_reds_texto(texto: str) -> tuple[dict | None, str | None]:
+    """Analisa o texto extraído de um REDS. Retorna (resultado, erro) -
+    exatamente um dos dois é None.
+
+    Trava anti-omissão: o modelo gratuito às vezes deixa um militar de fora
+    da lista. Como cada militar empenhado aparece no REDS com a matrícula no
+    padrão NNN.NNN-N, contamos as matrículas distintas do texto; se a IA
+    devolver menos militares que isso, a análise é refeita uma vez (fica com
+    a resposta mais completa) e, persistindo a diferença, o usuário é
+    avisado nas observações - numa proposta de recompensa, militar esquecido
+    é militar sem elogio."""
+    if not texto.strip():
+        return None, (
+            "Não foi possível extrair nenhum texto do arquivo (pode estar em branco, corrompido ou "
+            "o OCR não reconheceu nada)."
+        )
+
+    esperado = len(set(_RE_MATRICULA.findall(texto)))
+    dados, erro = _chamar_analise_reds(texto)
+    if erro:
+        return None, erro
+
+    if esperado and len(dados.get("militares") or []) < esperado:
+        segunda, erro2 = _chamar_analise_reds(texto)
+        if erro2 is None and len(segunda.get("militares") or []) > len(dados.get("militares") or []):
+            dados = segunda
+        if len(dados.get("militares") or []) < esperado:
+            dados.setdefault("observacoes", []).append(
+                f"O texto do REDS menciona {esperado} matrículas de militares, mas a análise "
+                f"individualizou {len(dados.get('militares') or [])}. Confira se algum militar "
+                "empenhado ficou de fora e acrescente-o manualmente."
+            )
 
     # Normaliza o posto de cada militar para o valor canônico dos <select>.
     for militar in dados.get("militares") or []:
@@ -425,11 +502,11 @@ def reds_recompensa():
     """Upload do REDS (PDF/DOCX/imagem) e análise por IA para propor
     recompensas com a conduta individualizada de cada militar."""
     if request.method == "GET":
-        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=None)
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=None, erro=None)
 
     arquivo = request.files.get("arquivo")
     if arquivo is None or not arquivo.filename:
-        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro="Selecione o arquivo do REDS (PDF, DOCX ou imagem).")
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=None, erro="Selecione o arquivo do REDS (PDF, DOCX ou imagem).")
 
     nome_seguro = secure_filename(arquivo.filename)
     sufixo = Path(nome_seguro).suffix.lower()
@@ -444,14 +521,14 @@ def reds_recompensa():
         arquivo.save(caminho_temp)
         texto = extrair_texto(caminho_temp)
     except Exception as exc:
-        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=f"Falha ao ler o arquivo: {exc}")
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=None, erro=f"Falha ao ler o arquivo: {exc}")
     finally:
         caminho_temp.unlink(missing_ok=True)
         caminho_temp.parent.rmdir()
 
     resultado, erro = analisar_reds_texto(texto)
     if erro:
-        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=erro)
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=None, erro=erro)
     if not resultado.get("militares"):
         erro = (
             "A IA não identificou nenhum policial militar atuando na ocorrência. Confira se o arquivo "
@@ -460,39 +537,104 @@ def reds_recompensa():
                 if resultado.get("observacoes") else "."
             )
         )
-        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=None, erro=erro)
-    return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, resultado=resultado, erro=None)
+        return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=None, erro=erro)
+    return render_template("modulo_reds.html", opcoes_posto=OPCOES_POSTO, requisitos_lista=REQUISITOS_RECOMPENSA, resultado=resultado, erro=None)
+
+
+def _militares_do_form(form) -> list[dict]:
+    """Lê os militares selecionados/revisados na tela de análise do REDS."""
+    try:
+        total = int(form.get("total") or 0)
+    except ValueError:
+        total = 0
+    militares = []
+    for i in range(total):
+        if not form.get(f"sel-{i}"):
+            continue
+        requisitos = {chave: bool(form.get(f"m-{i}-req-{chave}")) for chave, _ in REQUISITOS_RECOMPENSA}
+        militares.append({
+            "posto": (form.get(f"m-{i}-posto") or "").strip(),
+            "numero": (form.get(f"m-{i}-numero") or "").strip(),
+            "nome": (form.get(f"m-{i}-nome") or "").strip(),
+            "unidade": (form.get(f"m-{i}-unidade") or "").strip(),
+            "funcao": (form.get(f"m-{i}-funcao") or "").strip(),
+            "sintese": (form.get(f"m-{i}-sintese") or "").strip(),
+            "requisitos": requisitos,
+        })
+    return militares
+
+
+def _criar_registros_recompensa(form, militares: list[dict]) -> int:
+    """Cria um registro de Proposta de Recompensa por militar (persistência
+    JSON do módulo, mesma dos formulários manuais)."""
+    definicao = MODULOS["recompensa"]
+    valores_base, _ = _valores_autofill("recompensa", definicao)
+    for m in militares:
+        dados = dict(valores_base)
+        dados.update({
+            "posto_proposto": m["posto"],
+            "numero_proposto": m["numero"],
+            "nome_proposto": m["nome"],
+            "unidade_proposto": m["unidade"],
+            "sintese_justificativa": m["sintese"],
+            "reds_recompensa": (form.get("reds") or "").strip(),
+            "tipo_recompensa": (form.get("tipo_recompensa") or "").strip() or "Elogio Individual",
+            "data_proposta": date.today().isoformat(),
+        })
+        _salvar_registro("recompensa", uuid4().hex[:8], dados)
+    return len(militares)
 
 
 @bp_modulos.route("/recompensa/reds/criar", methods=["POST"])
 def criar_propostas_reds():
     """Cria uma Proposta de Recompensa por militar selecionado na tela de
-    análise do REDS, com os textos já revisados/editados pelo usuário."""
-    definicao = MODULOS["recompensa"]
-    # Proponente: mesmo autofill do formulário novo (último registro salvo).
-    valores_base, _ = _valores_autofill("recompensa", definicao)
+    análise do REDS e, se pedido, gera também o documento oficial (.docx)."""
+    militares = _militares_do_form(request.form)
+    _criar_registros_recompensa(request.form, militares)
 
-    try:
-        total = int(request.form.get("total") or 0)
-    except ValueError:
-        total = 0
-
-    criados = 0
-    for i in range(total):
-        if not request.form.get(f"sel-{i}"):
-            continue
-        dados = dict(valores_base)
-        dados.update({
-            "posto_proposto": (request.form.get(f"m-{i}-posto") or "").strip(),
-            "numero_proposto": (request.form.get(f"m-{i}-numero") or "").strip(),
-            "nome_proposto": (request.form.get(f"m-{i}-nome") or "").strip(),
-            "unidade_proposto": (request.form.get(f"m-{i}-unidade") or "").strip(),
-            "sintese_justificativa": (request.form.get(f"m-{i}-sintese") or "").strip(),
-            "reds_recompensa": (request.form.get("reds") or "").strip(),
-            "tipo_recompensa": dados.get("tipo_recompensa") or "Elogio Individual",
-            "data_proposta": date.today().isoformat(),
-        })
-        _salvar_registro("recompensa", uuid4().hex[:8], dados)
-        criados += 1
+    if request.form.get("gerar_documento") and militares:
+        data_fato = None
+        try:
+            data_fato = date.fromisoformat(request.form.get("data_fato") or "")
+        except ValueError:
+            pass
+        dados_doc = {
+            "linha_regiao": request.form.get("linha_regiao"),
+            "linha_unidade": request.form.get("linha_unidade"),
+            "cidade_sede": request.form.get("cidade_sede"),
+            "destinatario": request.form.get("destinatario"),
+            "tipo_recompensa": request.form.get("tipo_recompensa"),
+            "data_fato": data_fato,
+            "data_fato_texto": request.form.get("data_fato"),
+            "local_fato_linha": request.form.get("local_fato_linha"),
+            "descricao": request.form.get("descricao"),
+            "proponente_assinatura": request.form.get("proponente_assinatura"),
+            "anexos": request.form.get("anexos"),
+        }
+        objetos = [
+            MilitarProposta(
+                numero=m["numero"], posto=m["posto"], nome=m["nome"], unidade=m["unidade"],
+                funcao=m["funcao"], individualizacao=m["sintese"], requisitos=m["requisitos"],
+            )
+            for m in militares
+        ]
+        contexto = montar_contexto(dados_doc, objetos)
+        reds_slug = re.sub(r"[^A-Za-z0-9]+", "_", request.form.get("reds") or "sem_reds").strip("_")
+        nome_arquivo = f"proposta_recompensa_{reds_slug}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        gerar_documento_recompensa(contexto, _diretorio_modulo("recompensa") / "documentos" / nome_arquivo)
 
     return redirect(url_for(".lista", modulo_id="recompensa"))
+
+
+@bp_modulos.route("/recompensa/documentos/<path:nome_arquivo>")
+def baixar_documento_recompensa(nome_arquivo):
+    return send_from_directory(
+        _diretorio_modulo("recompensa") / "documentos", nome_arquivo, as_attachment=True
+    )
+
+
+def listar_documentos_recompensa() -> list[str]:
+    pasta = _diretorio_modulo("recompensa") / "documentos"
+    if not pasta.exists():
+        return []
+    return sorted((p.name for p in pasta.glob("*.docx")), reverse=True)

@@ -5,6 +5,18 @@
   <h2>{{ definicao.titulo }}</h2>
   <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">{{ definicao.descricao }}</p>
 
+  {% if documentos %}
+    <h3>Documentos oficiais gerados (.docx)</h3>
+    <ul class="documentos">
+      {% for doc in documentos %}
+        <li class="item-lista">
+          <span class="item-principal">{{ doc }}</span>
+          <a class="btn-mini" href="{{ url_for('modulos.baixar_documento_recompensa', nome_arquivo=doc) }}">⬇ Baixar</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   {% if not registros %}
     <p>Nenhum registro deste procedimento ainda.</p>
   {% else %}
