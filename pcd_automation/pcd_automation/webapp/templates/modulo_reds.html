@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}Analisar REDS - Proposta de Recompensa{% endblock %}
+{% block secao %}<a href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">Proposta de Recompensa</a> <span class="trilha-sep">/</span> Analisar REDS{% endblock %}
+{% block topo_acoes %}{% endblock %}
 {% block conteudo %}
 <div class="cartao">
-  <h2>Analisar REDS com IA</h2>
-  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">
+  <p class="subtitulo">
     Carregue o REDS da ocorrência (PDF, DOCX ou imagem - digitalizações passam por OCR). A IA extrai os
     dados, identifica os militares empenhados e individualiza a conduta de cada um. Você revisa os textos
     e o sistema cria uma Proposta de Recompensa pré-preenchida por militar selecionado.
@@ -24,7 +25,7 @@
         <a class="btn btn-secundario" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">Voltar à lista</a>
       </div>
     </form>
-    <p style="color:var(--texto-suave); font-size:.8rem;">A análise usa o modelo gratuito via OpenRouter e pode levar até 1 minuto.</p>
+    <p class="subtitulo">A análise usa o modelo gratuito via OpenRouter e pode levar até 1 minuto.</p>
 
   {% else %}
     <div class="caixa caixa-sucesso">

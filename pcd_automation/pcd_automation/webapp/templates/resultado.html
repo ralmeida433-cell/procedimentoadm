@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block titulo %}{{ titulo }}{% endblock %}
+{% block secao %}<a href="{{ url_for('pcd.dashboard') }}">Painel</a> <span class="trilha-sep">/</span> Resultado{% endblock %}
+{% block topo_acoes %}{% endblock %}
 {% block conteudo %}
 <div class="cartao">
-  <h2>{{ titulo }}</h2>
 
   {% if resultado.ok %}
     <div class="caixa caixa-sucesso">Documento(s) gerado(s) com sucesso.</div>

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block titulo %}{{ titulo }}{% endblock %}
+{% block secao %}<a href="{{ url_for('pcd.dashboard') }}">Painel</a> <span class="trilha-sep">/</span> Conferência{% endblock %}
+{% block topo_acoes %}{% endblock %}
 {% block conteudo %}
 <div class="cartao">
-  <h2>{{ titulo }}</h2>
 
   {% if erros %}
     <div class="caixa caixa-erro">

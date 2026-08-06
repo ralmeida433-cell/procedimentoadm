@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}{{ definicao.titulo }}{% endblock %}
+{% block secao %}<a href="{{ url_for('modulos.lista', modulo_id=modulo_id) }}">{{ definicao.titulo }}</a> <span class="trilha-sep">/</span> Registro{% endblock %}
+{% block topo_acoes %}{% endblock %}
 {% block conteudo %}
 <div class="cartao">
-  <h2>{{ definicao.titulo }}</h2>
-  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">
+  <p class="subtitulo">
     {{ definicao.descricao }} Campos marcados com
     <span style="color:var(--erro); font-weight:700;">*</span> são obrigatórios.
   </p>

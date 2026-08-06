@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}{{ titulo }}{% endblock %}
+{% block secao %}<a href="{{ url_for('pcd.dashboard') }}">Painel</a> <span class="trilha-sep">/</span> {{ etapa.titulo if etapa else 'Revisão' }}{% endblock %}
+{% block topo_acoes %}{% endblock %}
 {% block conteudo %}
 <div class="etapas">
   {% for e in etapas_todas %}
@@ -8,8 +10,7 @@
 </div>
 
 <div class="cartao">
-  <h2>{{ titulo }}</h2>
-  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">
+  <p class="subtitulo" style="margin-top:0;">
     Campos marcados com <span style="color:var(--erro); font-weight:700;">*</span> são obrigatórios.
     Passe o mouse sobre o ícone <span class="dica-icone" aria-hidden="true">?</span> para ver a orientação normativa.
   </p>

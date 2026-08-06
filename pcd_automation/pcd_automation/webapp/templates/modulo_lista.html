@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}{{ definicao.titulo }}{% endblock %}
+{% block secao %}Outros procedimentos{% endblock %}
+{% block topo_acoes %}<a class="btn btn-primario" href="{{ url_for('modulos.novo', modulo_id=modulo_id) }}">+ Novo registro</a>{% endblock %}
 {% block conteudo %}
 <div class="cartao">
-  <h2>{{ definicao.titulo }}</h2>
-  <p style="color:var(--texto-suave); font-size:.85rem; margin-top:-.5rem;">{{ definicao.descricao }}</p>
+  <p class="subtitulo">{{ definicao.descricao }}</p>
 
   {% if documentos %}
     <h3>Documentos oficiais gerados (.docx)</h3>
@@ -18,7 +19,26 @@
   {% endif %}
 
   {% if not registros %}
-    <p>Nenhum registro deste procedimento ainda.</p>
+    <div class="vazio">
+      <div class="icone-caixa" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v5M9.5 14.5h5"/></svg>
+      </div>
+      <h3>Nenhum registro ainda</h3>
+      <p>
+        {% if modulo_id == 'recompensa' %}
+          Crie a proposta preenchendo o formulário, ou carregue o REDS da ocorrência
+          para a IA identificar os militares e individualizar a conduta de cada um.
+        {% else %}
+          Cadastre o primeiro registro deste procedimento preenchendo o formulário.
+        {% endif %}
+      </p>
+      <div class="acoes" style="justify-content:center; margin-top:0;">
+        <a class="btn btn-primario" href="{{ url_for('modulos.novo', modulo_id=modulo_id) }}">+ Novo registro</a>
+        {% if modulo_id == 'recompensa' %}
+          <a class="btn btn-secundario" href="{{ url_for('modulos.reds_recompensa') }}">Analisar REDS com IA</a>
+        {% endif %}
+      </div>
+    </div>
   {% else %}
     <ul class="documentos">
       {% for r in registros %}

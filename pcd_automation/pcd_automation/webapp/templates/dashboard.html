@@ -1,75 +1,146 @@
 {% extends "base.html" %}
-{% block titulo %}Painel - Assistente de PCD{% endblock %}
+{% block titulo %}Painel de processos{% endblock %}
+{% block secao %}Painel{% endblock %}
+
 {% block conteudo %}
-<div class="cartao">
-  <h2>PCDs em andamento</h2>
+{% set em_andamento = processos | rejectattr('concluido') | list %}
+{% set concluidos = processos | selectattr('concluido') | list %}
 
-  {% if not rascunhos and not processos %}
-    <p>Nenhum PCD em andamento no momento. <a href="{{ url_for('pcd.novo') }}">Criar um novo PCD</a>.</p>
-  {% endif %}
-
-  {% if rascunhos %}
-    <h3>Rascunhos (ainda não instaurados)</h3>
-    <ul class="documentos">
-    {% for r in rascunhos %}
-      <li class="item-lista">
-        <a class="item-principal" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">{{ r.reds or '(sem REDS ainda)' }} - {{ r.nome or '(sem nome ainda)' }}</a>
-        <a class="btn-mini" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">Editar</a>
-        <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_rascunho', chave=r.chave) }}">Excluir</a>
-      </li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-
-  {% if processos %}
-    <h3>Processos instaurados</h3>
-    <ul class="documentos">
-    {% for p in processos %}
-      <li class="item-lista">
-        <a class="item-principal" href="{{ url_for('pcd.status_processo', processo_id=p.id) }}">{{ p.reds }} - {{ p.nome }}</a>
-        {% if p.concluido %}
-          <span class="badge badge-concluido">concluído</span>
-        {% else %}
-          <span class="badge badge-andamento">até: {{ p.etapa_atual }}</span>
-        {% endif %}
-        <a class="btn-mini" href="{{ url_for('pcd.formulario_etapa', processo_id=p.id, etapa_id=p.etapa_atual_id) }}">Editar</a>
-        <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_processo', processo_id=p.id) }}">Excluir</a>
-      </li>
-    {% endfor %}
-    </ul>
-  {% endif %}
+<div class="grade" style="margin-bottom:var(--e5);">
+  <div class="cartao" style="margin:0; padding:var(--e4);">
+    <div class="legenda">Rascunhos</div>
+    <div style="font-size:1.75rem; font-weight:650; line-height:1.2;">{{ rascunhos | length }}</div>
+    <div class="legenda">ainda não instaurados</div>
+  </div>
+  <div class="cartao" style="margin:0; padding:var(--e4);">
+    <div class="legenda">Em andamento</div>
+    <div style="font-size:1.75rem; font-weight:650; line-height:1.2; color:var(--azul);">{{ em_andamento | length }}</div>
+    <div class="legenda">processos instaurados</div>
+  </div>
+  <div class="cartao" style="margin:0; padding:var(--e4);">
+    <div class="legenda">Concluídos</div>
+    <div style="font-size:1.75rem; font-weight:650; line-height:1.2; color:var(--verde);">{{ concluidos | length }}</div>
+    <div class="legenda">todas as etapas cumpridas</div>
+  </div>
 </div>
 
-<div class="cartao">
-  <a class="btn btn-primario" href="{{ url_for('pcd.novo') }}">+ Criar novo PCD</a>
-  <a class="btn btn-secundario" href="{{ url_for('pcd.extrair') }}">Extrair dados de documento existente</a>
-</div>
+{% if not rascunhos and not processos %}
+  <div class="cartao">
+    <div class="vazio">
+      <div class="icone-caixa" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+      </div>
+      <h3>Nenhum PCD em andamento</h3>
+      <p>
+        Comece criando um processo do zero ou envie um documento já redigido para a
+        IA extrair os dados automaticamente.
+      </p>
+      <div class="acoes" style="justify-content:center; margin-top:0;">
+        <a class="btn btn-primario" href="{{ url_for('pcd.novo') }}">Criar novo PCD</a>
+        <a class="btn btn-secundario" href="{{ url_for('pcd.extrair') }}">Extrair de documento</a>
+      </div>
+    </div>
+  </div>
+{% endif %}
 
-{# Seção aditiva: módulos além do PCD (blueprint "modulos", modulos_extra.py). #}
+{% if rascunhos %}
+  <div class="cartao">
+    <div class="cartao-cabecalho">
+      <div style="flex:1 1 auto;">
+        <h2>Rascunhos</h2>
+        <div class="legenda">Ainda não instaurados — nenhum documento oficial foi gerado.</div>
+      </div>
+      <span class="badge badge-andamento">{{ rascunhos | length }}</span>
+    </div>
+    <div>
+      {% for r in rascunhos %}
+        <div class="item-lista">
+          <a class="item-principal" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">
+            {{ r.reds or '(sem REDS ainda)' }} — {{ r.nome or '(sem nome ainda)' }}
+          </a>
+          <a class="btn-mini" href="{{ url_for('pcd.editar_rascunho', chave=r.chave) }}">Editar</a>
+          <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_rascunho', chave=r.chave) }}">Excluir</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+{% if processos %}
+  <div class="cartao">
+    <div class="cartao-cabecalho">
+      <div style="flex:1 1 auto;">
+        <h2>Processos instaurados</h2>
+        <div class="legenda">Clique no processo para ver documentos, prazos e a próxima etapa.</div>
+      </div>
+      <span class="badge badge-andamento">{{ processos | length }}</span>
+    </div>
+    <div>
+      {% for p in processos %}
+        <div class="item-lista">
+          <a class="item-principal" href="{{ url_for('pcd.status_processo', processo_id=p.id) }}">
+            {{ p.reds or '(sem REDS)' }} — {{ p.nome }}
+          </a>
+          {% if p.concluido %}
+            <span class="badge badge-concluido">concluído</span>
+          {% else %}
+            <span class="badge badge-andamento">até: {{ p.etapa_atual }}</span>
+          {% endif %}
+          <a class="btn-mini" href="{{ url_for('pcd.formulario_etapa', processo_id=p.id, etapa_id=p.etapa_atual_id) }}">Editar</a>
+          <a class="btn-mini btn-mini-perigo" href="{{ url_for('pcd.excluir_processo', processo_id=p.id) }}">Excluir</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
 <div class="cartao">
-  <h2>Outros procedimentos</h2>
-  <ul class="documentos">
-    <li class="item-lista">
-      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">Proposta de Recompensa</a>
-      <span style="color:var(--texto-suave); font-size:.85rem;">elogio, nota do mérito, dispensa do serviço</span>
-      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='recompensa') }}">+ Novo</a>
-      <a class="btn-mini" href="{{ url_for('modulos.reds_recompensa') }}">Analisar REDS (IA)</a>
-    </li>
-    <li class="item-lista">
-      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='rip') }}">RIP - Relatório de Investigação Preliminar</a>
-      <span style="color:var(--texto-suave); font-size:.85rem;">apuração preliminar de fato</span>
-      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='rip') }}">+ Novo</a>
-    </li>
-    <li class="item-lista">
-      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='sad') }}">SAD - Sindicância Administrativa Disciplinar</a>
-      <span style="color:var(--texto-suave); font-size:.85rem;">portaria, sindicado e objeto</span>
-      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='sad') }}">+ Novo</a>
-    </li>
-    <li class="item-lista">
-      <a class="item-principal" href="{{ url_for('modulos.lista', modulo_id='apf') }}">APF - Auto de Prisão em Flagrante</a>
-      <span style="color:var(--texto-suave); font-size:.85rem;">partes, dinâmica e materiais apreendidos</span>
-      <a class="btn-mini" href="{{ url_for('modulos.novo', modulo_id='apf') }}">+ Novo</a>
-    </li>
-  </ul>
+  <div class="cartao-cabecalho">
+    <div style="flex:1 1 auto;">
+      <h2>Outros procedimentos</h2>
+      <div class="legenda">Recompensa, RIP, SAD e APF — registro de dados e geração de documentos.</div>
+    </div>
+  </div>
+
+  <div class="grade">
+    <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}">
+      <span class="icone-caixa" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/></svg>
+      </span>
+      <span class="titulo">Proposta de Recompensa</span>
+      <span class="descricao">Elogio individual ou coletivo, nota do mérito e dispensa do serviço. Gera o documento oficial.</span>
+      <span class="rodape">
+        <span class="badge badge-concluido">gera .docx</span>
+        <span class="badge badge-andamento">analisa REDS</span>
+      </span>
+    </a>
+
+    <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='rip') }}">
+      <span class="icone-caixa" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </span>
+      <span class="titulo">RIP</span>
+      <span class="descricao">Relatório de Investigação Preliminar: portaria, investigador, fato gerador e envolvidos.</span>
+      <span class="rodape"><span class="badge badge-andamento">registro de dados</span></span>
+    </a>
+
+    <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='sad') }}">
+      <span class="icone-caixa" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
+      </span>
+      <span class="titulo">SAD</span>
+      <span class="descricao">Sindicância Administrativa Disciplinar: portaria, encarregado, sindicado e objeto.</span>
+      <span class="rodape"><span class="badge badge-andamento">registro de dados</span></span>
+    </a>
+
+    <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='apf') }}">
+      <span class="icone-caixa" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </span>
+      <span class="titulo">APF</span>
+      <span class="descricao">Auto de Prisão em Flagrante: partes, dinâmica do fato e materiais apreendidos.</span>
+      <span class="rodape"><span class="badge badge-andamento">registro de dados</span></span>
+    </a>
+  </div>
 </div>
 {% endblock %}

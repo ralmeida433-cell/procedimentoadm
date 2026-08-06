@@ -5,30 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar - Assistente de PCD PMMG</title>
 <style>
-  :root { --azul:#1e40af; --azul-claro:#3b82f6; --fundo:#f4f7fb; --texto:#1e293b; --borda:#e2e8f0; --erro:#dc2626; --erro-fundo:#fef2f2; }
-  * { box-sizing:border-box; }
-  body { font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto);
-         margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
-  .cartao-login { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:2.25rem 2rem;
-                  box-shadow:0 4px 16px rgba(15,23,42,.08); width:100%; max-width:380px; }
-  h1 { font-size:1.15rem; color:var(--azul); margin:0 0 .35rem; }
-  p.sub { color:#64748b; font-size:.85rem; margin:0 0 1.5rem; }
-  label { display:block; font-weight:600; font-size:.88rem; margin:0 0 .4rem; }
-  input[type=password] { width:100%; padding:.6rem .7rem; border:1px solid var(--borda); border-radius:8px;
-                         font-size:1rem; background:#fff; color:var(--texto); }
-  input:focus { outline:2px solid var(--azul-claro); border-color:var(--azul-claro); }
-  button { width:100%; margin-top:1.2rem; padding:.7rem; border:none; border-radius:8px; background:var(--azul);
-           color:#fff; font-weight:600; font-size:.95rem; cursor:pointer; }
-  button:hover { background:#1e3a8a; }
-  .caixa-erro { background:var(--erro-fundo); color:var(--erro); border:1px solid #fecaca; border-radius:8px;
-                padding:.6rem .8rem; font-size:.88rem; margin-bottom:1rem; }
+  /* Página isolada (não estende base.html): repete só os tokens que usa,
+     mantendo a mesma identidade visual do restante do sistema. */
+  :root {
+    --azul:#1e40af; --azul-escuro:#1e3a8a; --azul-claro:#3b82f6;
+    --fundo:#f4f7fb; --texto:#1e293b; --texto-suave:#64748b;
+    --borda:#e2e8f0; --erro:#dc2626; --erro-fundo:#fef2f2;
+    --r-md:10px; --r-lg:14px;
+    --transicao:140ms cubic-bezier(.4,0,.2,1);
+  }
+  *, *::before, *::after { box-sizing:border-box; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:
+      radial-gradient(1000px 500px at 50% -10%, #e7eefc 0%, transparent 60%),
+      var(--fundo);
+    color:var(--texto); margin:0; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .cartao-login {
+    background:#fff; border:1px solid var(--borda); border-radius:var(--r-lg);
+    padding:32px; box-shadow:0 12px 32px rgba(15,23,42,.10);
+    width:100%; max-width:400px;
+    animation: entrar 220ms cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes entrar { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .marca { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+  .marca-brasao {
+    width:40px; height:40px; flex:0 0 40px; border-radius:var(--r-md);
+    background:linear-gradient(135deg,var(--azul),var(--azul-claro));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.85rem;
+  }
+  h1 { font-size:1.05rem; margin:0; line-height:1.25; font-weight:650; }
+  .marca-sub { color:var(--texto-suave); font-size:.8rem; line-height:1.25; }
+  p.sub { color:var(--texto-suave); font-size:.875rem; margin:0 0 24px; }
+  label { display:block; font-weight:600; font-size:.875rem; margin:0 0 8px; }
+  input[type=password] {
+    width:100%; min-height:2.6rem; padding:.55rem .7rem;
+    border:1px solid var(--borda); border-radius:var(--r-md);
+    font-size:1rem; font-family:inherit; background:#fff; color:var(--texto);
+    transition:border-color var(--transicao), box-shadow var(--transicao);
+  }
+  input[type=password]:hover { border-color:#cbd5e1; }
+  input[type=password]:focus {
+    outline:none; border-color:var(--azul-claro);
+    box-shadow:0 0 0 3px rgba(59,130,246,.16);
+  }
+  button {
+    width:100%; margin-top:20px; padding:.7rem; border:none; border-radius:var(--r-md);
+    background:var(--azul); color:#fff; font-weight:600; font-size:.95rem;
+    font-family:inherit; cursor:pointer;
+    transition:background var(--transicao), transform var(--transicao);
+  }
+  button:hover { background:var(--azul-escuro); }
+  button:active { transform:translateY(1px); }
+  button:focus-visible { outline:2px solid var(--azul-claro); outline-offset:2px; }
+  .caixa-erro {
+    background:var(--erro-fundo); color:#991b1b; border:1px solid #fecaca;
+    border-radius:var(--r-md); padding:.7rem .85rem; font-size:.875rem; margin-bottom:16px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
 </style>
 </head>
 <body>
   <form class="cartao-login" method="post" action="{{ url_for('pcd.login') }}">
-    <h1>Assistente de PCD - PMMG</h1>
+    <div class="marca">
+      <span class="marca-brasao" aria-hidden="true">PM</span>
+      <span>
+        <h1>Assistente de PCD</h1>
+        <span class="marca-sub">Polícia Militar de Minas Gerais</span>
+      </span>
+    </div>
     <p class="sub">Acesso restrito. Informe a senha para continuar.</p>
-    {% if erro %}<div class="caixa-erro">{{ erro }}</div>{% endif %}
+    {% if erro %}<div class="caixa-erro" role="alert">{{ erro }}</div>{% endif %}
     <input type="hidden" name="proxima" value="{{ proxima }}">
     <label for="senha">Senha</label>
     <input type="password" id="senha" name="senha" autofocus required>
