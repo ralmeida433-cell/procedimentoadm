@@ -38,7 +38,7 @@ from pcd_automation.extracao import EXTENSOES_SUPORTADAS, extrair_texto
 from pcd_automation.gerador_recompensa import (
     REQUISITOS_RECOMPENSA, MilitarProposta, gerar_documento_recompensa, montar_contexto,
 )
-from pcd_automation.ia_cliente import chamar_openrouter
+from pcd_automation.ia_cliente import RespostaIA, chamar_openrouter_detalhado
 from pcd_automation.webapp.campos_ui import OPCOES_POSTO, normalizar_posto
 
 bp_modulos = Blueprint("modulos", __name__, url_prefix="/modulos")
@@ -437,8 +437,8 @@ def _extrair_json_ia(texto: str) -> dict:
 _RE_MATRICULA = re.compile(r"\b\d{3}\.\d{3}-\d\b")
 
 
-def _chamar_analise_reds(texto: str) -> tuple[dict | None, str | None]:
-    conteudo, erro = chamar_openrouter(
+def _chamar_analise_reds(texto: str) -> tuple[dict | None, str | None, RespostaIA]:
+    resposta = chamar_openrouter_detalhado(
         [
             {"role": "system", "content": PROMPT_REDS},
             {"role": "user", "content": f"Texto extraído do REDS:\n\n{texto[:150000]}"},
@@ -449,12 +449,12 @@ def _chamar_analise_reds(texto: str) -> tuple[dict | None, str | None]:
         timeout=240,
         json_obrigatorio=True,
     )
-    if erro:
-        return None, erro
+    if resposta.erro:
+        return None, resposta.erro, resposta
     try:
-        return _extrair_json_ia(conteudo), None
+        return _extrair_json_ia(resposta.conteudo), None, resposta
     except json.JSONDecodeError:
-        return None, f"A IA não retornou um JSON válido. Resposta bruta: {conteudo[:400]}"
+        return None, f"A IA não retornou um JSON válido. Resposta bruta: {resposta.conteudo[:400]}", resposta
 
 
 def analisar_reds_texto(texto: str) -> tuple[dict | None, str | None]:
@@ -475,12 +475,19 @@ def analisar_reds_texto(texto: str) -> tuple[dict | None, str | None]:
         )
 
     esperado = len(set(_RE_MATRICULA.findall(texto)))
-    dados, erro = _chamar_analise_reds(texto)
+    dados, erro, resposta = _chamar_analise_reds(texto)
     if erro:
         return None, erro
 
+    if resposta.usou_reserva:
+        dados.setdefault("observacoes", []).append(
+            f"O modelo principal estava indisponível (capacidade do tier gratuito); a análise foi "
+            f"feita pelo modelo reserva {resposta.modelo_usado}, que é menor. Revise os textos com "
+            "atenção redobrada ou refaça a análise mais tarde."
+        )
+
     if esperado and len(dados.get("militares") or []) < esperado:
-        segunda, erro2 = _chamar_analise_reds(texto)
+        segunda, erro2, _ = _chamar_analise_reds(texto)
         if erro2 is None and len(segunda.get("militares") or []) > len(dados.get("militares") or []):
             dados = segunda
         if len(dados.get("militares") or []) < esperado:
