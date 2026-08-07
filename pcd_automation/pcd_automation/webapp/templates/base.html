@@ -543,6 +543,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
             SAD
           </a>
+          <a class="nav-item" href="{{ url_for('modulos.lista', modulo_id='acidente_viatura') }}" {% if caminho.startswith('/modulos/acidente_viatura') %}aria-current="page"{% endif %}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M6.5 17V13l1.8-4.2A2 2 0 0 1 10.1 7.5h3.8a2 2 0 0 1 1.8 1.3L17.5 13v4"/><circle cx="8" cy="17.5" r="1.5"/><circle cx="16" cy="17.5" r="1.5"/></svg>
+            Acidente com Viatura
+          </a>
           <a class="nav-item" href="{{ url_for('modulos.lista', modulo_id='apf') }}" {% if caminho.startswith('/modulos/apf') %}aria-current="page"{% endif %}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             APF

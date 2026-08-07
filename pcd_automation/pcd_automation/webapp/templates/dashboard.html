@@ -133,6 +133,18 @@
       <span class="rodape"><span class="badge badge-andamento">registro de dados</span></span>
     </a>
 
+    <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='acidente_viatura') }}">
+      <span class="icone-caixa" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6.5 17V13l1.8-4.2A2 2 0 0 1 10.1 7.5h3.8a2 2 0 0 1 1.8 1.3L17.5 13v4"/><circle cx="8" cy="17.5" r="1.5"/><circle cx="16" cy="17.5" r="1.5"/></svg>
+      </span>
+      <span class="titulo">Acidente com Viatura</span>
+      <span class="descricao">Sindicância dos arts. 321-324 do MAPPA: apura o dano à viatura, a transgressão e o ressarcimento. Gera as 7 peças.</span>
+      <span class="rodape">
+        <span class="badge badge-concluido">gera .docx</span>
+        <span class="badge badge-andamento">alerta de IPM</span>
+      </span>
+    </a>
+
     <a class="cartao-modulo" href="{{ url_for('modulos.lista', modulo_id='apf') }}">
       <span class="icone-caixa" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Peças geradas - {{ definicao.titulo }}{% endblock %}
+{% block secao %}<a href="{{ url_for('modulos.lista', modulo_id=modulo_id) }}">{{ definicao.titulo }}</a> <span class="trilha-sep">/</span> Peças geradas{% endblock %}
+{% block topo_acoes %}{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  {% if resultado.ok %}
+    <div class="caixa caixa-sucesso">
+      <strong>{{ resultado.documentos | length }} peça(s) gerada(s).</strong>
+      Confira cada uma no Word antes de assinar e juntar aos autos.
+    </div>
+  {% else %}
+    <div class="caixa caixa-erro">
+      <strong>Houve falha na geração:</strong>
+      <ul>{% for e in resultado.erros %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {% if resultado.alertas %}
+    <div class="caixa caixa-aviso">
+      <strong>Atenção — prazo e providências do MAPPA:</strong>
+      <ul>{% for a in resultado.alertas %}<li>{{ a }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {% if resultado.pendentes %}
+    <div class="caixa caixa-aviso">
+      <strong>Marcado como [PREENCHER] nas peças — complete no Word ou volte e preencha no formulário:</strong>
+      <ul>{% for p in resultado.pendentes %}<li>{{ p }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {% if resultado.documentos %}
+    <h3>Peças do procedimento</h3>
+    <ul class="documentos">
+      {% for doc in resultado.documentos %}
+        <li class="item-lista">
+          <span class="item-principal">{{ doc }}</span>
+          <a class="btn-mini" href="{{ url_for('modulos.baixar_documento_acidente', registro_id=registro_id, nome_arquivo=doc) }}">⬇ Baixar</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="acoes">
+    <a class="btn btn-secundario" href="{{ url_for('modulos.editar', modulo_id=modulo_id, registro_id=registro_id) }}">Editar dados e gerar de novo</a>
+    <a class="btn btn-secundario" href="{{ url_for('modulos.lista', modulo_id=modulo_id) }}">Voltar à lista</a>
+  </div>
+</div>
+{% endblock %}

@@ -38,6 +38,7 @@ from pcd_automation.extracao import EXTENSOES_SUPORTADAS, extrair_texto
 from pcd_automation.gerador_recompensa import (
     REQUISITOS_RECOMPENSA, MilitarProposta, gerar_documento_recompensa, montar_contexto,
 )
+from pcd_automation.gerador_acidente_viatura import gerar_documentos as gerar_documentos_acidente
 from pcd_automation.ia_cliente import RespostaIA, chamar_openrouter_detalhado
 from pcd_automation.webapp.campos_ui import OPCOES_POSTO, normalizar_posto
 
@@ -170,6 +171,97 @@ MODULOS: dict[str, dict] = {
             {"titulo": "Materiais Apreendidos", "campos": [
                 {"chave": "materiais_apreendidos_apf", "rotulo": "Materiais Apreendidos (um por linha)", "tipo": "texto_longo", "obrigatorio": False,
                  "tooltip": "Armas, equipamentos ou objetos vinculados ao flagrante, com identificação (nº de série etc.)."},
+            ]},
+        ],
+    },
+    # Sindicância de acidente com viatura - arts. 321 a 324 do MAPPA (Cap. IX).
+    # Gera as 7 peças (ver gerador_acidente_viatura).
+    "acidente_viatura": {
+        "titulo": "Acidente com Viatura",
+        "descricao": "Sindicância para apuração de acidente com viatura (arts. 321-324 do MAPPA). "
+                     "Gera as 7 peças do procedimento, da portaria à solução.",
+        "campos_resumo": ["numero_portaria", "descricao_viatura"],
+        "gera_documentos": True,
+        "secoes": [
+            {"titulo": "Portaria e Unidade", "campos": [
+                {"chave": "unidade", "rotulo": "Unidade/UDI", "tipo": "unidade", "obrigatorio": True, "autofill": "ultimo",
+                 "tooltip": "Unidade ou Unidade de Direção Intermediária onde corre a sindicância (ex.: 1ª Cia Ind / 3º BPM)."},
+                {"chave": "cidade_sede", "rotulo": "Cidade do quartel", "tipo": "cidade", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "numero_portaria", "rotulo": "Número da Portaria", "tipo": "texto", "obrigatorio": True,
+                 "tooltip": "Ex.: 101.3/2026."},
+                {"chave": "data_portaria", "rotulo": "Data da Portaria", "tipo": "data", "obrigatorio": True, "autofill": "hoje"},
+                {"chave": "data_recibo_portaria", "rotulo": "Data do recibo da portaria pelo sindicante", "tipo": "data", "obrigatorio": False,
+                 "tooltip": "Marco inicial do prazo de 30 dias corridos (arts. 273/274 do MAPPA). Deixe em branco se ainda não houve recibo."},
+                {"chave": "prorrogado", "rotulo": "Prazo prorrogado por 10 dias?", "tipo": "select", "obrigatorio": False,
+                 "opcoes": ["Não", "Sim"]},
+            ]},
+            {"titulo": "Autoridade Delegante", "campos": [
+                {"chave": "nome_delegante", "rotulo": "Nome da Autoridade Delegante", "tipo": "texto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "posto_delegante", "rotulo": "Posto/Graduação da Autoridade Delegante", "tipo": "posto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "numero_delegante", "rotulo": "Número de Matrícula da Autoridade Delegante", "tipo": "texto", "obrigatorio": False, "autofill": "ultimo"},
+                {"chave": "cargo_delegante", "rotulo": "Cargo da Autoridade Delegante", "tipo": "texto", "obrigatorio": True, "autofill": "ultimo",
+                 "tooltip": "Ex.: Comandante da 1ª Cia Ind PM. Entra na abertura da portaria e na assinatura da solução."},
+            ]},
+            {"titulo": "Sindicante (encarregado)", "campos": [
+                {"chave": "nome_sindicante", "rotulo": "Nome do Sindicante", "tipo": "texto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "posto_sindicante", "rotulo": "Posto/Graduação do Sindicante", "tipo": "posto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "numero_sindicante", "rotulo": "Número de Matrícula do Sindicante", "tipo": "texto", "obrigatorio": False, "autofill": "ultimo"},
+            ]},
+            {"titulo": "Envolvido / Responsável pela viatura", "campos": [
+                {"chave": "nome_envolvido", "rotulo": "Nome do Envolvido/Responsável", "tipo": "texto", "obrigatorio": True},
+                {"chave": "posto_envolvido", "rotulo": "Posto/Graduação do Envolvido", "tipo": "posto", "obrigatorio": False},
+                {"chave": "numero_envolvido", "rotulo": "Número de Matrícula do Envolvido", "tipo": "texto", "obrigatorio": False},
+                {"chave": "sem_carater_disciplinar", "rotulo": "Sindicância SEM caráter disciplinar?", "tipo": "select", "obrigatorio": False,
+                 "opcoes": ["Não", "Sim"],
+                 "tooltip": "Marque Sim quando a apuração for exclusivamente do dano (ex.: culpa exclusiva de terceiro civil). "
+                            "Nesse caso o art. 324, §2º, do MAPPA dispensa a notificação para defesa prévia, e essa peça não é gerada."},
+                {"chave": "houve_vitima", "rotulo": "Houve vítima?", "tipo": "select", "obrigatorio": True,
+                 "opcoes": ["Não houve vítima", "Vítima civil", "Vítima militar (passageiro ou pedestre)",
+                            "Vítima militar condutor da viatura"],
+                 "tooltip": "Define se, além desta sindicância, é obrigatório instaurar IPM (art. 322, I a IV, do MAPPA). O sistema avisa após gerar."},
+            ]},
+            {"titulo": "Viatura e Dano", "campos": [
+                {"chave": "descricao_viatura", "rotulo": "Descrição da Viatura/Material", "tipo": "texto", "obrigatorio": True,
+                 "tooltip": "Ex.: VTR 12345, Chevrolet Spin, placa ABC-1D23, patrimônio nº 000000."},
+                {"chave": "valor_prejuizo", "rotulo": "Valor do Prejuízo/Avaria", "tipo": "texto", "obrigatorio": False,
+                 "tooltip": "Se já houver avaliação prévia. Ex.: R$ 1.200,00."},
+                {"chave": "data_fato", "rotulo": "Data do Fato", "tipo": "data", "obrigatorio": True},
+                {"chave": "hora_fato", "rotulo": "Hora do Fato", "tipo": "hora", "obrigatorio": False},
+                {"chave": "local_fato", "rotulo": "Local do Fato", "tipo": "texto", "obrigatorio": True},
+                {"chave": "historico_fato", "rotulo": "Histórico Sucinto do Fato", "tipo": "texto_longo", "obrigatorio": True,
+                 "tooltip": "Descreva cronologicamente o que ocorreu, de forma objetiva e impessoal."},
+            ]},
+            {"titulo": "Instrução (termo de abertura e depoimento)", "campos": [
+                {"chave": "data_abertura", "rotulo": "Data do Termo de Abertura", "tipo": "data", "obrigatorio": False},
+                {"chave": "documentos_juntados", "rotulo": "Documentos juntados na abertura", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Ex.: cópia do REDS, ficha da viatura, laudo de avaria, escala de serviço."},
+                {"chave": "numero_folhas_autos", "rotulo": "Nº de folhas dos autos (notificação)", "tipo": "texto", "obrigatorio": False},
+                {"chave": "data_notificacao", "rotulo": "Data da Notificação do sindicado", "tipo": "data", "obrigatorio": False},
+                {"chave": "nome_depoente", "rotulo": "Nome do Depoente", "tipo": "texto", "obrigatorio": False},
+                {"chave": "posto_depoente", "rotulo": "Posto/Graduação do Depoente", "tipo": "posto", "obrigatorio": False},
+                {"chave": "numero_depoente", "rotulo": "Número de Matrícula do Depoente", "tipo": "texto", "obrigatorio": False},
+                {"chave": "data_depoimento", "rotulo": "Data do Depoimento", "tipo": "data", "obrigatorio": False},
+                {"chave": "hora_depoimento", "rotulo": "Hora do Depoimento", "tipo": "hora", "obrigatorio": False},
+                {"chave": "teor_circunstancias", "rotulo": "Depoimento — circunstâncias do fato", "tipo": "texto_longo", "obrigatorio": False},
+                {"chave": "teor_cautela", "rotulo": "Depoimento — cautela e estado de conservação da viatura", "tipo": "texto_longo", "obrigatorio": False},
+                {"chave": "teor_nexo", "rotulo": "Depoimento — nexo de causalidade", "tipo": "texto_longo", "obrigatorio": False},
+            ]},
+            {"titulo": "Relatório Final", "campos": [
+                {"chave": "diligencias", "rotulo": "Diligências realizadas (seção 2)", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Juntada de termos, laudos, notas fiscais, perícias."},
+                {"chave": "analise_merito", "rotulo": "Análise do mérito (seção 3)", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Culpa, dolo, caso fortuito, força maior ou desgaste natural do material. É juízo do sindicante — o sistema não redige por você."},
+                {"chave": "conclusao_parecer", "rotulo": "Conclusão e parecer (seção 4)", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Há ou não responsabilidade pecuniária/disciplinar e necessidade de ressarcimento ao erário."},
+                {"chave": "data_relatorio", "rotulo": "Data do Relatório", "tipo": "data", "obrigatorio": False},
+            ]},
+            {"titulo": "Encerramento e Solução", "campos": [
+                {"chave": "data_encerramento", "rotulo": "Data do Termo de Encerramento", "tipo": "data", "obrigatorio": False},
+                {"chave": "numero_folhas_autos_final", "rotulo": "Nº total de folhas dos autos", "tipo": "texto", "obrigatorio": False},
+                {"chave": "texto_solucao", "rotulo": "Decisão da autoridade delegante", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Homologar, reformar ou determinar novas diligências, com fundamentação. Ato privativo da autoridade."},
+                {"chave": "encaminhamentos", "rotulo": "Encaminhamentos administrativos/financeiros", "tipo": "texto_longo", "obrigatorio": False},
+                {"chave": "data_solucao", "rotulo": "Data da Solução", "tipo": "data", "obrigatorio": False},
             ]},
         ],
     },
@@ -645,3 +737,44 @@ def listar_documentos_recompensa() -> list[str]:
     if not pasta.exists():
         return []
     return sorted((p.name for p in pasta.glob("*.docx")), reverse=True)
+
+
+# ------------------------------- sindicância de acidente com viatura (Cap. IX)
+
+def _pasta_documentos_registro(modulo_id: str, registro_id: str) -> Path:
+    """Cada sindicância tem sua própria pasta de peças - ao contrário da
+    Recompensa, que gera um documento avulso por proposta. Aqui são 7 peças de
+    UM mesmo procedimento, e misturá-las com as de outro seria confusão de
+    autos."""
+    return _diretorio_modulo(modulo_id) / "documentos" / registro_id
+
+
+@bp_modulos.route("/acidente_viatura/<registro_id>/gerar", methods=["POST"])
+def gerar_acidente_viatura(registro_id):
+    payload = _carregar_registro("acidente_viatura", registro_id)
+    if payload is None:
+        abort(404)
+    dados = payload.get("dados") or {}
+    pasta = _pasta_documentos_registro("acidente_viatura", registro_id)
+    resultado = gerar_documentos_acidente(dados, pasta)
+    return render_template(
+        "modulo_resultado.html",
+        modulo_id="acidente_viatura",
+        registro_id=registro_id,
+        definicao=MODULOS["acidente_viatura"],
+        resultado=resultado,
+    )
+
+
+@bp_modulos.route("/acidente_viatura/<registro_id>/documentos/<path:nome_arquivo>")
+def baixar_documento_acidente(registro_id, nome_arquivo):
+    return send_from_directory(
+        _pasta_documentos_registro("acidente_viatura", registro_id), nome_arquivo, as_attachment=True
+    )
+
+
+def listar_documentos_registro(modulo_id: str, registro_id: str) -> list[str]:
+    pasta = _pasta_documentos_registro(modulo_id, registro_id)
+    if not pasta.exists():
+        return []
+    return sorted(p.name for p in pasta.glob("*.docx"))
