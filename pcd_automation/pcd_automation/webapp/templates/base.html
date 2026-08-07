@@ -529,6 +529,16 @@
       </div>
 
       <div class="nav-grupo">
+        <div class="nav-titulo" id="g-base">Base da ocorrência</div>
+        <div role="group" aria-labelledby="g-base">
+          <a class="nav-item" href="{{ url_for('modulos.ocorrencias') }}" {% if caminho.startswith('/modulos/ocorrencias') %}aria-current="page"{% endif %}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+            Ocorrências (REDS)
+          </a>
+        </div>
+      </div>
+
+      <div class="nav-grupo">
         <div class="nav-titulo" id="g-outros">Outros procedimentos</div>
         <div role="group" aria-labelledby="g-outros">
           <a class="nav-item" href="{{ url_for('modulos.lista', modulo_id='recompensa') }}" {% if caminho.startswith('/modulos/recompensa') %}aria-current="page"{% endif %}>

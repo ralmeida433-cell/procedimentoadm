@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Ocorrências{% endblock %}
+{% block secao %}Ocorrências{% endblock %}
+{% block topo_acoes %}<a class="btn btn-primario" href="{{ url_for('modulos.importar_ocorrencia') }}">+ Importar REDS</a>{% endblock %}
+{% block conteudo %}
+<div class="cartao">
+  <p class="subtitulo">
+    Base única do sistema: os dados extraídos aqui abastecem todos os módulos, para você não
+    redigitar nome, CPF, RG, filiação ou endereço em cada documento.
+  </p>
+
+  {% if not ocorrencias %}
+    <div class="vazio">
+      <div class="icone-caixa" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      </div>
+      <h3>Nenhuma ocorrência importada</h3>
+      <p>Importe o REDS uma vez e os dados passam a preencher automaticamente os formulários de todos os procedimentos.</p>
+      <div class="acoes" style="justify-content:center; margin-top:0;">
+        <a class="btn btn-primario" href="{{ url_for('modulos.importar_ocorrencia') }}">Importar REDS</a>
+      </div>
+    </div>
+  {% else %}
+    {% for o in ocorrencias %}
+      <div class="item-lista">
+        <a class="item-principal" href="{{ url_for('modulos.revisar_ocorrencia', ocorrencia_id=o.id) }}">{{ o.resumo }}</a>
+        <span class="badge badge-andamento">{{ (o.dados.pessoas or []) | length }} pessoa(s)</span>
+        <span class="badge badge-andamento">{{ (o.dados.equipe_policial or []) | length }} militar(es)</span>
+        <a class="btn-mini" href="{{ url_for('modulos.revisar_ocorrencia', ocorrencia_id=o.id) }}">Abrir</a>
+        <form method="post" action="{{ url_for('modulos.excluir_ocorrencia', ocorrencia_id=o.id) }}" style="display:inline"
+              onsubmit="return confirm('Excluir esta ocorrência? Os documentos já gerados não são afetados.');">
+          <button type="submit" class="btn-mini btn-mini-perigo">Excluir</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

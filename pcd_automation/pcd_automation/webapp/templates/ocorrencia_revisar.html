@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block titulo %}Revisar ocorrência{% endblock %}
+{% block secao %}<a href="{{ url_for('modulos.ocorrencias') }}">Ocorrências</a> <span class="trilha-sep">/</span> Revisar{% endblock %}
+{% block topo_acoes %}{% endblock %}
+{% block conteudo %}
+
+{% if salvo %}
+  <div class="caixa caixa-sucesso">Alterações salvas. Todos os módulos passam a usar estes dados.</div>
+{% endif %}
+
+{% if dados.ambiguidades %}
+  <div class="caixa caixa-aviso">
+    <strong>Pontos que a extração sinalizou — confira antes de usar:</strong>
+    <ul>{% for a in dados.ambiguidades %}<li>{{ a }}</li>{% endfor %}</ul>
+  </div>
+{% endif %}
+
+<div class="cartao">
+  <p class="subtitulo">
+    Confira e corrija o que a IA extraiu. Estes dados alimentam todos os documentos —
+    um erro aqui se repete em todas as peças.
+  </p>
+
+  <form method="post">
+    <fieldset class="grupo-campos">
+      <legend>Ocorrência</legend>
+      {% set oc = dados.ocorrencia or {} %}
+      {% for chave, rotulo, tipo in [
+          ('reds_numero','Nº do REDS','text'), ('natureza','Natureza','text'),
+          ('data_fato','Data do fato','date'), ('hora_fato','Hora do fato','time'),
+          ('local','Local','text'), ('municipio','Município','text'), ('uf','UF','text'),
+          ('unidade','Unidade','text'), ('fracao','Fração','text')] %}
+        <div class="campo">
+          <label for="oc-{{ chave }}">{{ rotulo }}</label>
+          <input type="{{ tipo }}" id="oc-{{ chave }}" name="oc-{{ chave }}" value="{{ oc.get(chave) or '' }}">
+        </div>
+      {% endfor %}
+      <div class="campo">
+        <label for="oc-historico_sucinto">Histórico sucinto</label>
+        <textarea id="oc-historico_sucinto" name="oc-historico_sucinto">{{ oc.get('historico_sucinto') or '' }}</textarea>
+      </div>
+    </fieldset>
+
+    {% for p in dados.pessoas %}
+      <fieldset class="grupo-campos">
+        <legend>Pessoa {{ loop.index }} — {{ p.nome_completo or '(sem nome)' }}</legend>
+        {% set i = loop.index0 %}
+        <div class="campo">
+          <label for="p{{ i }}-tipo_envolvimento">Tipo de envolvimento</label>
+          <select id="p{{ i }}-tipo_envolvimento" name="p{{ i }}-tipo_envolvimento">
+            {% for t in tipos %}
+              <option value="{{ t }}" {{ 'selected' if p.tipo_envolvimento == t else '' }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% for campo in campos_pessoa %}
+          <div class="campo">
+            <label for="p{{ i }}-{{ campo }}">{{ campo.replace('_',' ') | capitalize }}</label>
+            <input type="{{ 'date' if campo == 'data_nascimento' else 'text' }}"
+                   id="p{{ i }}-{{ campo }}" name="p{{ i }}-{{ campo }}" value="{{ p.get(campo) or '' }}">
+          </div>
+        {% endfor %}
+        {% for campo in campos_endereco %}
+          <div class="campo">
+            <label for="p{{ i }}-end-{{ campo }}">Endereço — {{ campo }}</label>
+            <input type="text" id="p{{ i }}-end-{{ campo }}" name="p{{ i }}-end-{{ campo }}"
+                   value="{{ (p.endereco or {}).get(campo) or '' }}">
+          </div>
+        {% endfor %}
+        {% if qualificacoes.get(p.id) %}
+          <p class="legenda" style="margin-top:var(--e3);">Qualificação que sairá nos termos e portarias:</p>
+          <blockquote style="margin:0; padding:var(--e3); background:var(--superficie-2); border-left:3px solid var(--verde); font-style:italic; font-size:var(--t-aux);">{{ qualificacoes[p.id] }}</blockquote>
+        {% endif %}
+      </fieldset>
+    {% endfor %}
+
+    {% for m in dados.equipe_policial %}
+      <fieldset class="grupo-campos">
+        <legend>Militar {{ loop.index }} — {{ m.nome_militar or '(sem nome)' }}</legend>
+        {% set i = loop.index0 %}
+        <div class="campo">
+          <label for="m{{ i }}-cargo_graduacao">Posto/Graduação</label>
+          <select id="m{{ i }}-cargo_graduacao" name="m{{ i }}-cargo_graduacao">
+            <option value="">-- não informado --</option>
+            {% if m.cargo_graduacao and m.cargo_graduacao not in (opcoes_posto | map(attribute=0) | list) %}
+              <option value="{{ m.cargo_graduacao }}" selected>{{ m.cargo_graduacao }} (fora da lista)</option>
+            {% endif %}
+            {% for v, rotulo in opcoes_posto %}
+              <option value="{{ v }}" {{ 'selected' if m.cargo_graduacao == v else '' }}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% for campo, rotulo in [('nome_militar','Nome'), ('num_policial','Número de matrícula'),
+                                 ('funcao','Função na ocorrência'), ('unidade','Unidade')] %}
+          <div class="campo">
+            <label for="m{{ i }}-{{ campo }}">{{ rotulo }}</label>
+            <input type="text" id="m{{ i }}-{{ campo }}" name="m{{ i }}-{{ campo }}"
+                   value="{{ m.get(campo) or '' }}"
+                   {% if campo == 'unidade' %}list="unidades-pmmg" autocomplete="off"{% endif %}>
+          </div>
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+
+    {% set bens = dados.bens_envolvidos or {} %}
+    {% if bens.objetos or bens.veiculos or bens.drogas or bens.armas or bens.valores %}
+      <fieldset class="grupo-campos">
+        <legend>Bens envolvidos</legend>
+        {% for grupo, itens in bens.items() %}
+          {% if itens %}
+            <p style="margin:var(--e2) 0 var(--e1);"><strong>{{ grupo | capitalize }}:</strong></p>
+            <ul style="margin:0 0 var(--e3) var(--e5);">
+              {% for item in itens %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        {% endfor %}
+        <p class="legenda">Os bens são exibidos para conferência; edite-os pelo arquivo da ocorrência se necessário.</p>
+      </fieldset>
+    {% endif %}
+
+    <div class="acoes">
+      <button type="submit" class="btn btn-primario">Salvar alterações</button>
+      <a class="btn btn-secundario" href="{{ url_for('modulos.ocorrencias') }}">Voltar</a>
+    </div>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>Usar esta ocorrência</h2>
+  <p class="subtitulo">Abre o formulário já preenchido com estes dados. Tudo continua editável.</p>
+  <div class="acoes" style="margin-top:0;">
+    {% for mid, titulo in modulos %}
+      <a class="btn btn-secundario" href="{{ url_for('modulos.novo', modulo_id=mid, ocorrencia=ocorrencia_id) }}">{{ titulo }}</a>
+    {% endfor %}
+    <a class="btn btn-primario" href="{{ url_for('modulos.criar_pcd_de_ocorrencia', ocorrencia_id=ocorrencia_id) }}">Criar rascunho de PCD</a>
+  </div>
+</div>
+
+<datalist id="unidades-pmmg">
+  {% for valor, descricao in unidades_pmmg %}<option value="{{ valor }}" label="{{ descricao }}"></option>{% endfor %}
+</datalist>
+{% endblock %}

@@ -40,6 +40,12 @@ from pcd_automation.gerador_recompensa import (
 )
 from pcd_automation.gerador_acidente_viatura import gerar_documentos as gerar_documentos_acidente
 from pcd_automation.ia_cliente import RespostaIA, chamar_openrouter_detalhado
+from pcd_automation.extrator_ocorrencia import extrair_ocorrencia
+from pcd_automation.ocorrencia import (
+    CAMPOS_ENDERECO, CAMPOS_PESSOA, TIPOS_ENVOLVIMENTO, carregar_ocorrencia,
+    formatar_qualificacao, listar_ocorrencias, remover_ocorrencia, salvar_ocorrencia,
+    valores_para_modulo,
+)
 from pcd_automation.webapp.campos_ui import OPCOES_POSTO, normalizar_posto
 
 bp_modulos = Blueprint("modulos", __name__, url_prefix="/modulos")
@@ -387,6 +393,21 @@ def novo(modulo_id):
         return redirect(url_for(".lista", modulo_id=modulo_id))
 
     valores, prefilled = _valores_autofill(modulo_id, definicao)
+
+    # Preenchimento único: ?ocorrencia=<id> traz os dados já extraídos da
+    # ocorrência. Prevalecem sobre o autofill do último registro, porque são
+    # deste caso concreto; e continuam todos editáveis.
+    ocorrencia_id = request.args.get("ocorrencia")
+    if ocorrencia_id:
+        payload = carregar_ocorrencia(_diretorio_base_ocorrencias(), ocorrencia_id)
+        if payload:
+            da_ocorrencia = valores_para_modulo(payload.get("dados") or {}, modulo_id)
+            valores.update(da_ocorrencia)
+            rotulos = {c["chave"]: c["rotulo"] for c in _campos_do_modulo(definicao)}
+            prefilled = [r for r in prefilled if r not in
+                         [rotulos.get(k, k) for k in da_ocorrencia]]
+            prefilled += [rotulos.get(k, k) for k in da_ocorrencia]
+
     return render_template(
         "modulo_form.html", modulo_id=modulo_id, definicao=definicao, valores=valores,
         prefilled=prefilled, erros=[], action=url_for(".novo", modulo_id=modulo_id),
@@ -778,3 +799,148 @@ def listar_documentos_registro(modulo_id: str, registro_id: str) -> list[str]:
     if not pasta.exists():
         return []
     return sorted(p.name for p in pasta.glob("*.docx"))
+
+
+# ============================================================================
+# BASE ÚNICA DA OCORRÊNCIA - "preenchimento único"
+#
+# Fluxo: upload do documento -> extração IA -> revisão pelo usuário -> base
+# salva. A partir daí, qualquer formulário de módulo pode ser aberto já
+# preenchido a partir dela (?ocorrencia=<id>), e o PCD ganha um rascunho
+# pronto - sem que nenhum formulário existente precise ser reescrito: quem
+# traduz a base para os campos de cada módulo é a tabela de mapeamento em
+# `ocorrencia.MAPEAMENTO_MODULOS`.
+# ============================================================================
+
+@bp_modulos.route("/ocorrencias")
+def ocorrencias():
+    return render_template(
+        "ocorrencias.html", ocorrencias=listar_ocorrencias(_diretorio_base_ocorrencias())
+    )
+
+
+def _diretorio_base_ocorrencias() -> Path:
+    return Path(current_app.config["DIRETORIO_BASE"])
+
+
+@bp_modulos.route("/ocorrencias/importar", methods=["GET", "POST"])
+def importar_ocorrencia():
+    """Upload de REDS/documento -> extração -> tela de revisão."""
+    if request.method == "GET":
+        return render_template("ocorrencia_importar.html", erro=None)
+
+    arquivo = request.files.get("arquivo")
+    if arquivo is None or not arquivo.filename:
+        return render_template("ocorrencia_importar.html",
+                               erro="Selecione o arquivo (PDF, DOCX ou imagem).")
+    nome_seguro = secure_filename(arquivo.filename)
+    sufixo = Path(nome_seguro).suffix.lower()
+    if sufixo not in EXTENSOES_SUPORTADAS:
+        return render_template(
+            "ocorrencia_importar.html",
+            erro=f"Extensão não suportada: {sufixo or '(sem extensão)'} "
+                 f"(aceitos: {', '.join(sorted(EXTENSOES_SUPORTADAS))}).")
+
+    caminho_temp = Path(tempfile.mkdtemp(prefix="oc_")) / nome_seguro
+    try:
+        arquivo.save(caminho_temp)
+        texto = extrair_texto(caminho_temp)
+    except Exception as exc:  # noqa: BLE001
+        return render_template("ocorrencia_importar.html", erro=f"Falha ao ler o arquivo: {exc}")
+    finally:
+        caminho_temp.unlink(missing_ok=True)
+        caminho_temp.parent.rmdir()
+
+    dados, erro, _resp = extrair_ocorrencia(texto)
+    if erro:
+        return render_template("ocorrencia_importar.html", erro=erro)
+
+    ocorrencia_id = salvar_ocorrencia(_diretorio_base_ocorrencias(), dados)
+    return redirect(url_for(".revisar_ocorrencia", ocorrencia_id=ocorrencia_id))
+
+
+@bp_modulos.route("/ocorrencias/<ocorrencia_id>", methods=["GET", "POST"])
+def revisar_ocorrencia(ocorrencia_id):
+    """Revisão/edição da base extraída. É aqui que o usuário confere antes de
+    a base alimentar qualquer documento."""
+    base = _diretorio_base_ocorrencias()
+    payload = carregar_ocorrencia(base, ocorrencia_id)
+    if payload is None:
+        abort(404)
+    dados = payload.get("dados") or {}
+
+    if request.method == "POST":
+        oc = dict(dados.get("ocorrencia") or {})
+        for campo in ("reds_numero", "natureza", "data_fato", "hora_fato", "local",
+                      "municipio", "uf", "unidade", "fracao", "historico_sucinto"):
+            oc[campo] = (request.form.get(f"oc-{campo}") or "").strip() or None
+        dados["ocorrencia"] = oc
+
+        for indice, pessoa in enumerate(dados.get("pessoas") or []):
+            pessoa["tipo_envolvimento"] = (request.form.get(f"p{indice}-tipo_envolvimento") or "Outro").strip()
+            for campo in CAMPOS_PESSOA:
+                pessoa[campo] = (request.form.get(f"p{indice}-{campo}") or "").strip() or None
+            endereco = pessoa.get("endereco") or {}
+            for campo in CAMPOS_ENDERECO:
+                endereco[campo] = (request.form.get(f"p{indice}-end-{campo}") or "").strip() or None
+            pessoa["endereco"] = endereco
+
+        for indice, militar in enumerate(dados.get("equipe_policial") or []):
+            for campo in ("cargo_graduacao", "nome_militar", "num_policial", "funcao", "unidade"):
+                militar[campo] = (request.form.get(f"m{indice}-{campo}") or "").strip() or None
+
+        salvar_ocorrencia(base, dados, ocorrencia_id)
+        return redirect(url_for(".revisar_ocorrencia", ocorrencia_id=ocorrencia_id, salvo=1))
+
+    return render_template(
+        "ocorrencia_revisar.html", ocorrencia_id=ocorrencia_id, payload=payload, dados=dados,
+        campos_pessoa=CAMPOS_PESSOA, campos_endereco=CAMPOS_ENDERECO,
+        tipos=TIPOS_ENVOLVIMENTO, opcoes_posto=OPCOES_POSTO,
+        qualificacoes={p["id"]: formatar_qualificacao(p) for p in dados.get("pessoas") or []},
+        salvo=request.args.get("salvo"),
+        modulos=[(mid, MODULOS[mid]["titulo"]) for mid in MODULOS],
+    )
+
+
+@bp_modulos.route("/ocorrencias/<ocorrencia_id>/excluir", methods=["POST"])
+def excluir_ocorrencia(ocorrencia_id):
+    remover_ocorrencia(_diretorio_base_ocorrencias(), ocorrencia_id)
+    return redirect(url_for(".ocorrencias"))
+
+
+@bp_modulos.route("/ocorrencias/<ocorrencia_id>/criar-pcd")
+def criar_pcd_de_ocorrencia(ocorrencia_id):
+    """Cria um rascunho de PCD já preenchido a partir da ocorrência.
+
+    Integração ADITIVA com o módulo de PCD: grava um rascunho no mesmo formato
+    que o PCD já lê (`estado.salvar_rascunho`) e redireciona para a tela de
+    edição dele. Nenhuma rota, formulário ou regra do PCD foi alterada - do
+    ponto de vista do PCD, é um rascunho como outro qualquer.
+    """
+    from datetime import date as _date
+
+    from pcd_automation.gerador_portarias.planilha import CAMPOS_INFO, converter_valor
+    from pcd_automation.interativo import estado
+    from pcd_automation.ocorrencia import valores_para_pcd
+
+    base = _diretorio_base_ocorrencias()
+    payload = carregar_ocorrencia(base, ocorrencia_id)
+    if payload is None:
+        abort(404)
+
+    dados: dict = {}
+    for chave, valor in valores_para_pcd(payload.get("dados") or {}).items():
+        if chave not in CAMPOS_INFO:
+            continue  # fora do schema do PCD - não é gravado
+        _, tipo = CAMPOS_INFO[chave]
+        if tipo == "data":
+            try:
+                dados[chave] = _date.fromisoformat(str(valor))
+            except ValueError:
+                continue  # data em formato inesperado fica em branco para o usuário
+        else:
+            dados[chave] = converter_valor("texto", valor)
+
+    chave_rascunho = f"rascunho-{uuid4().hex[:8]}"
+    estado.salvar_rascunho(base, chave_rascunho, dados)
+    return redirect(url_for("pcd.editar_rascunho", chave=chave_rascunho))
