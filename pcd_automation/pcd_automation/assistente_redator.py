@@ -51,6 +51,24 @@ Base normativa aplicável: MAPPA (Resolução Conjunta nº 4.220/2012), CEDM (Le
 Se o encarregado não forneceu dados suficientes para a tarefa pedida, diga o que falta em vez de \
 completar por conta própria."""
 
+# Formato exigido dos modos que PRODUZEM texto para o documento. Fora deles
+# (FUNDAMENTAR, PERGUNTAR) não há texto a copiar - a resposta é análise, e
+# encaixá-la numa caixa de código só atrapalharia a leitura.
+FORMATO_DUAS_PARTES = """
+FORMATO OBRIGATÓRIO DA RESPOSTA - duas partes, nesta ordem:
+
+PARTE 1 - TEXTO PRONTO PARA CÓPIA
+Coloque o texto final, e SOMENTE ele, dentro de um único bloco de código markdown, abrindo com \
+```markdown e fechando com ```. O conteúdo desse bloco tem de estar 100% redigido, formal e pronto \
+para revisão e assinatura - nada de comentários, explicações ou perguntas dentro dele.
+
+PARTE 2 - NOTAS TÉCNICAS
+Depois de fechar o bloco, e fora dele, escreva de forma sucinta: a fundamentação aplicável \
+(CEDM/EMEMG/MAPPA), as observações operacionais e, principalmente, a lista dos dados que ficaram \
+marcados como informação não informada e precisam ser completados.
+
+Não use nenhum outro bloco de código na resposta - só o da PARTE 1."""
+
 _INSTRUCOES = {
     "RESUMIR": (
         "TAREFA: produzir uma síntese objetiva e cronológica da ocorrência a partir do texto "
@@ -90,6 +108,10 @@ _INSTRUCOES = {
         "os indícios de autoria e materialidade. Não invente lacuna que o texto não revele."
     ),
 }
+
+# Modos que produzem texto destinado ao documento e, por isso, devolvem a
+# resposta em duas partes (caixa copiável + notas técnicas).
+MODOS_COM_CAIXA = {"RESUMIR", "REDIGIR", "MELHORAR"}
 
 MODOS = {
     "RESUMIR": "Síntese objetiva e cronológica da ocorrência",
@@ -138,6 +160,8 @@ def executar(modo: str, conteudo: str, historico: list[dict] | None = None) -> R
         )
 
     partes = [PROMPT_BASE, "", _INSTRUCOES[modo]]
+    if modo in MODOS_COM_CAIXA:
+        partes += ["", FORMATO_DUAS_PARTES]
     fontes: list[str] = []
 
     if modo == "FUNDAMENTAR":

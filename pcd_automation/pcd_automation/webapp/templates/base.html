@@ -550,6 +550,32 @@
   .assistente-comandos button:hover { border-color: var(--azul-claro); background: #fff; }
   .assistente-comandos button strong { color: var(--azul); }
 
+  /* Caixa do texto pronto (PARTE 1 da resposta do redator). */
+  .assistente-caixa {
+    border: 1px solid var(--borda); border-radius: var(--r-md);
+    background: var(--cartao); margin: var(--e2) 0; overflow: hidden;
+  }
+  .assistente-caixa-topo {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--e2);
+    padding: var(--e1) var(--e2); background: var(--superficie-2);
+    border-bottom: 1px solid var(--borda-suave);
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--texto-suave);
+  }
+  .assistente-caixa-topo button {
+    border: 1px solid var(--borda); background: var(--cartao); color: var(--azul);
+    border-radius: var(--r-sm); padding: 2px var(--e2); cursor: pointer;
+    font-family: inherit; font-size: .7rem; font-weight: 700; text-transform: none;
+    letter-spacing: normal; white-space: nowrap;
+  }
+  .assistente-caixa-topo button:hover { background: var(--azul-fundo); border-color: var(--azul-claro); }
+  .assistente-caixa pre {
+    margin: 0; padding: var(--e3); max-height: 300px; overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .78rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;
+    color: var(--texto);
+  }
+
   .assistente-modo-tag {
     display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .04em;
     background: var(--azul); color: #fff; padding: 1px var(--e1); border-radius: var(--r-sm);
@@ -796,6 +822,50 @@
       .replace(/\n/g, '<br>');
   }
 
+  /* O redator responde em duas partes: o texto do documento dentro de um bloco
+     ```markdown e as notas técnicas fora dele. Aqui esse bloco vira uma caixa
+     com botão de copiar - sem isso o encarregado teria de selecionar o texto a
+     mão, que é justamente o trabalho que a caixa existe para evitar.
+     O conteúdo do bloco entra por textContent, nunca por innerHTML: é texto de
+     documento, não marcação. */
+  function renderizarResposta(destino, texto) {
+    var partes = String(texto || '').split(/```[a-zA-Z]*\n?/);
+    partes.forEach(function (parte, indice) {
+      if (!parte) return;
+      var dentroDoBloco = indice % 2 === 1;   // ímpares ficam entre as cercas
+      if (!dentroDoBloco) {
+        var nota = document.createElement('div');
+        nota.innerHTML = formatar(parte);
+        destino.appendChild(nota);
+        return;
+      }
+      var caixa = el('div', null, 'assistente-caixa');
+      var topo = el('div', null, 'assistente-caixa-topo');
+      topo.appendChild(el('span', 'Texto pronto para o documento'));
+      var copiar = el('button', 'Copiar');
+      copiar.type = 'button';
+      copiar.addEventListener('click', function () {
+        var conteudo = parte.replace(/\n+$/, '');
+        function avisar(ok) {
+          copiar.textContent = ok ? 'Copiado ✓' : 'Copie manualmente';
+          setTimeout(function () { copiar.textContent = 'Copiar'; }, 2000);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(conteudo).then(function () { avisar(true); },
+                                                       function () { avisar(false); });
+        } else {
+          avisar(false);   // sem HTTPS/permissão a área de transferência não existe
+        }
+      });
+      topo.appendChild(copiar);
+      caixa.appendChild(topo);
+      var pre = document.createElement('pre');
+      pre.textContent = parte.replace(/\n+$/, '');
+      caixa.appendChild(pre);
+      destino.appendChild(caixa);
+    });
+  }
+
   function desenhar() {
     lista.textContent = '';
     var msgs = conversa();
@@ -818,9 +888,7 @@
       if (m.papel === 'usuario' || m.erro) {
         bloco.appendChild(document.createTextNode(m.texto));
       } else {
-        var corpo = document.createElement('div');
-        corpo.innerHTML = formatar(m.texto);
-        bloco.appendChild(corpo);
+        renderizarResposta(bloco, m.texto);
       }
       if (m.fontes && m.fontes.length) {
         bloco.appendChild(el('div', 'Fontes: ' + m.fontes.join(', '), 'assistente-fontes'));
