@@ -47,8 +47,8 @@
           {% if r.criado_em %}<span class="badge badge-andamento">criado em {{ r.criado_em[:10] }}</span>{% endif %}
           <a class="btn-mini" href="{{ url_for('modulos.editar', modulo_id=modulo_id, registro_id=r.id) }}">Editar</a>
           {% if definicao.gera_documentos %}
-            <form method="post" action="{{ url_for('modulos.gerar_acidente_viatura', registro_id=r.id) }}" style="display:inline">
-              <button type="submit" class="btn-mini">Gerar peças (.docx)</button>
+            <form method="post" action="{{ url_for('modulos.gerar_documentos_modulo', modulo_id=modulo_id, registro_id=r.id) }}" style="display:inline">
+              <button type="submit" class="btn-mini">{{ definicao.rotulo_gerar or "Gerar peças (.docx)" }}</button>
             </form>
           {% endif %}
           <a class="btn-mini btn-mini-perigo" href="{{ url_for('modulos.excluir', modulo_id=modulo_id, registro_id=r.id) }}">Excluir</a>

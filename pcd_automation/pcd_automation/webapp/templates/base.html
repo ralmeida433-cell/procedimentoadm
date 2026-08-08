@@ -619,6 +619,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/></svg>
             Proposta de Recompensa
           </a>
+          <a class="nav-item" href="{{ url_for('modulos.lista', modulo_id='levantamento_inicial') }}" {% if caminho.startswith('/modulos/levantamento_inicial') %}aria-current="page"{% endif %}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5.2-5.2M8 10.5h5M10.5 8v5"/></svg>
+            Levantamento Inicial
+          </a>
           <a class="nav-item" href="{{ url_for('modulos.lista', modulo_id='rip') }}" {% if caminho.startswith('/modulos/rip') %}aria-current="page"{% endif %}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
             RIP

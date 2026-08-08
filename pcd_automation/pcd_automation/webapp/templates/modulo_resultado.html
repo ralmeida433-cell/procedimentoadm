@@ -36,7 +36,7 @@
       {% for doc in resultado.documentos %}
         <li class="item-lista">
           <span class="item-principal">{{ doc }}</span>
-          <a class="btn-mini" href="{{ url_for('modulos.baixar_documento_acidente', registro_id=registro_id, nome_arquivo=doc) }}">⬇ Baixar</a>
+          <a class="btn-mini" href="{{ url_for('modulos.baixar_documento_modulo', modulo_id=modulo_id, registro_id=registro_id, nome_arquivo=doc) }}">⬇ Baixar</a>
         </li>
       {% endfor %}
     </ul>

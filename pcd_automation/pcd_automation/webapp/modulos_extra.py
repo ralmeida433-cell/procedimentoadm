@@ -39,6 +39,8 @@ from pcd_automation.gerador_recompensa import (
     REQUISITOS_RECOMPENSA, MilitarProposta, gerar_documento_recompensa, montar_contexto,
 )
 from pcd_automation.gerador_acidente_viatura import gerar_documentos as gerar_documentos_acidente
+from pcd_automation.gerador_levantamento_inicial import MEDIDAS as MEDIDAS_LI
+from pcd_automation.gerador_levantamento_inicial import gerar_documentos as gerar_documentos_li
 from pcd_automation.ia_cliente import RespostaIA, chamar_openrouter_detalhado
 from pcd_automation.extrator_ocorrencia import extrair_ocorrencia
 from pcd_automation.ocorrencia import (
@@ -177,6 +179,73 @@ MODULOS: dict[str, dict] = {
             {"titulo": "Materiais Apreendidos", "campos": [
                 {"chave": "materiais_apreendidos_apf", "rotulo": "Materiais Apreendidos (um por linha)", "tipo": "texto_longo", "obrigatorio": False,
                  "tooltip": "Armas, equipamentos ou objetos vinculados ao flagrante, com identificação (nº de série etc.)."},
+            ]},
+        ],
+    },
+    # Levantamento Inicial - arts. 100 a 103 do MAPPA (Cap. IV).
+    # Gera UMA peça (relatório conclusivo): o art. 100, §3º, diz que "não há
+    # maiores formalidades" e o resultado pode ser apresentado por relatório.
+    "levantamento_inicial": {
+        "titulo": "Levantamento Inicial (LI)",
+        "descricao": "Apuração sumária do art. 100, I, do MAPPA, quando os indícios ainda são "
+                     "insuficientes. Gera o Relatório Conclusivo.",
+        "campos_resumo": ["registro_li", "objeto_apuracao"],
+        "gera_documentos": True,
+        "rotulo_gerar": "Gerar relatório (.docx)",
+        "secoes": [
+            {"titulo": "Identificação", "campos": [
+                {"chave": "unidade", "rotulo": "Unidade/Órgão", "tipo": "unidade", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "cidade_sede", "rotulo": "Cidade do quartel", "tipo": "cidade", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "registro_li", "rotulo": "Registro do LI", "tipo": "texto", "obrigatorio": True,
+                 "tooltip": "Ex.: LI nº 100.3.2026 - OPM."},
+                {"chave": "autoridade_mandante", "rotulo": "Autoridade Mandante", "tipo": "texto", "obrigatorio": True, "autofill": "ultimo",
+                 "tooltip": "Quem determinou o levantamento. Ex.: Sr. Comandante da 1ª Cia Ind PM."},
+                {"chave": "data_relatorio", "rotulo": "Data do Relatório", "tipo": "data", "obrigatorio": True, "autofill": "hoje"},
+            ]},
+            {"titulo": "Encarregado do LI", "campos": [
+                {"chave": "nome_encarregado", "rotulo": "Nome do Encarregado", "tipo": "texto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "posto_encarregado", "rotulo": "Posto/Graduação do Encarregado", "tipo": "posto", "obrigatorio": True, "autofill": "ultimo"},
+                {"chave": "numero_encarregado", "rotulo": "Número de Matrícula do Encarregado", "tipo": "texto", "obrigatorio": False, "autofill": "ultimo"},
+                {"chave": "encarregado_inteligencia", "rotulo": "Levantamento coube à Seção de Inteligência?", "tipo": "select", "obrigatorio": False,
+                 "opcoes": ["Não", "Sim"],
+                 "tooltip": "Art. 100, §2º, do MAPPA: o LI é feito pela Seção de Inteligência OU por militar com precedência hierárquica sobre o investigado."},
+            ]},
+            {"titulo": "Envolvido / Investigado", "campos": [
+                {"chave": "nome_envolvido", "rotulo": "Nome do Envolvido", "tipo": "texto", "obrigatorio": False,
+                 "tooltip": "Deixe em branco se ainda não identificado - comum no LI, cuja função é justamente levantar elementos."},
+                {"chave": "posto_envolvido", "rotulo": "Posto/Graduação do Envolvido", "tipo": "posto", "obrigatorio": False},
+                {"chave": "numero_envolvido", "rotulo": "Número de Matrícula do Envolvido", "tipo": "texto", "obrigatorio": False},
+                {"chave": "unidade_envolvido", "rotulo": "Unidade do Envolvido", "tipo": "unidade", "obrigatorio": False},
+            ]},
+            {"titulo": "Objeto e Origem", "campos": [
+                {"chave": "origem_denuncia_anonima", "rotulo": "Origem é denúncia anônima?", "tipo": "select", "obrigatorio": False,
+                 "opcoes": ["Não", "Sim"],
+                 "tooltip": "Art. 103 do MAPPA: confirmada a veracidade, a portaria seguinte cita como origem o LI, nao a denúncia anônima."},
+                {"chave": "origem_fato", "rotulo": "Origem do fato (se não for denúncia anônima)", "tipo": "texto", "obrigatorio": False,
+                 "tooltip": "Ex.: comunicação verbal do Cmt de Pelotão; notícia veiculada na imprensa; representação."},
+                {"chave": "objeto_apuracao", "rotulo": "Objeto da Apuração", "tipo": "texto_longo", "obrigatorio": True,
+                 "tooltip": "Resumo sucinto da notícia do fato, denúncia ou irregularidade que motivou o levantamento."},
+                {"chave": "data_fato", "rotulo": "Data do Fato", "tipo": "data", "obrigatorio": False},
+                {"chave": "local_fato", "rotulo": "Local do Fato", "tipo": "texto", "obrigatorio": False},
+            ]},
+            {"titulo": "Instrução", "campos": [
+                {"chave": "diligencias", "rotulo": "Diligências Realizadas", "tipo": "texto_longo", "obrigatorio": True,
+                 "tooltip": "Exposição cronológica: oitivas, vistorias, relatórios de serviço, juntada de documentos, imagens de câmeras, pesquisas em sistemas."},
+                {"chave": "esclarecimentos", "rotulo": "Esclarecimentos do(s) Envolvido(s)", "tipo": "texto_longo", "obrigatorio": False,
+                 "tooltip": "Versão apresentada pelos envolvidos, se houve manifestação."},
+            ]},
+            {"titulo": "Análise e Conclusão", "campos": [
+                {"chave": "analise_fatos", "rotulo": "Análise dos Fatos e das Provas", "tipo": "texto_longo", "obrigatorio": True,
+                 "tooltip": "Confronto entre o que as diligências colheram e a versão dos envolvidos. É juízo do encarregado - o sistema não redige por você."},
+                {"chave": "houve_indicios", "rotulo": "Foram identificados indícios de autoria/materialidade?", "tipo": "select", "obrigatorio": True,
+                 "opcoes": ["Não", "Sim"],
+                 "tooltip": "O sistema confere se a medida proposta é coerente com esta resposta."},
+                {"chave": "enquadramento_tese", "rotulo": "Enquadramento em tese (CEDM ou ilícito penal)", "tipo": "texto", "obrigatorio": False,
+                 "tooltip": "Ex.: art. 13, inciso XX, do CEDM; ou indício de crime militar do art. XXX do CPM."},
+                {"chave": "conclusao", "rotulo": "Conclusão do Encarregado", "tipo": "texto_longo", "obrigatorio": True},
+                {"chave": "medida_proposta", "rotulo": "Medida Proposta", "tipo": "select", "obrigatorio": True,
+                 "opcoes": MEDIDAS_LI,
+                 "tooltip": "Art. 100 do MAPPA: sem indícios, arquiva-se; indícios ainda insuficientes levam a RIP; indícios consistentes, a processo regular ou IPM."},
             ]},
         ],
     },
@@ -770,27 +839,35 @@ def _pasta_documentos_registro(modulo_id: str, registro_id: str) -> Path:
     return _diretorio_modulo(modulo_id) / "documentos" / registro_id
 
 
-@bp_modulos.route("/acidente_viatura/<registro_id>/gerar", methods=["POST"])
-def gerar_acidente_viatura(registro_id):
-    payload = _carregar_registro("acidente_viatura", registro_id)
+# Cada módulo que gera .docx aponta para o seu gerador. Módulo novo com
+# geração só precisa entrar neste dicionário e marcar "gera_documentos".
+GERADORES = {
+    "acidente_viatura": gerar_documentos_acidente,
+    "levantamento_inicial": gerar_documentos_li,
+}
+
+
+@bp_modulos.route("/<modulo_id>/<registro_id>/gerar", methods=["POST"])
+def gerar_documentos_modulo(modulo_id, registro_id):
+    definicao = _definicao_ou_404(modulo_id)
+    gerador = GERADORES.get(modulo_id)
+    if gerador is None:
+        abort(404)
+    payload = _carregar_registro(modulo_id, registro_id)
     if payload is None:
         abort(404)
-    dados = payload.get("dados") or {}
-    pasta = _pasta_documentos_registro("acidente_viatura", registro_id)
-    resultado = gerar_documentos_acidente(dados, pasta)
+    resultado = gerador(payload.get("dados") or {}, _pasta_documentos_registro(modulo_id, registro_id))
     return render_template(
-        "modulo_resultado.html",
-        modulo_id="acidente_viatura",
-        registro_id=registro_id,
-        definicao=MODULOS["acidente_viatura"],
-        resultado=resultado,
+        "modulo_resultado.html", modulo_id=modulo_id, registro_id=registro_id,
+        definicao=definicao, resultado=resultado,
     )
 
 
-@bp_modulos.route("/acidente_viatura/<registro_id>/documentos/<path:nome_arquivo>")
-def baixar_documento_acidente(registro_id, nome_arquivo):
+@bp_modulos.route("/<modulo_id>/<registro_id>/documentos/<path:nome_arquivo>")
+def baixar_documento_modulo(modulo_id, registro_id, nome_arquivo):
+    _definicao_ou_404(modulo_id)
     return send_from_directory(
-        _pasta_documentos_registro("acidente_viatura", registro_id), nome_arquivo, as_attachment=True
+        _pasta_documentos_registro(modulo_id, registro_id), nome_arquivo, as_attachment=True
     )
 
 
