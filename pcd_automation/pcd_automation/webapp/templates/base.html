@@ -479,6 +479,80 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   }
+
+  /* ===================== ASSISTENTE MAPPA (flutuante) ===================== */
+  .assistente-ancora { position: fixed; right: 24px; bottom: 24px; z-index: 60; }
+  .assistente-bolha {
+    width: 56px; height: 56px; border-radius: 50%; border: none; cursor: grab;
+    background: linear-gradient(135deg, var(--azul), var(--azul-claro)); color: #fff;
+    box-shadow: var(--sombra-4); display: flex; align-items: center; justify-content: center;
+    transition: transform var(--transicao), box-shadow var(--transicao);
+    touch-action: none;
+  }
+  .assistente-bolha:hover { transform: scale(1.06); }
+  .assistente-bolha:active { cursor: grabbing; }
+  .assistente-bolha svg { width: 26px; height: 26px; }
+
+  .assistente-painel {
+    position: absolute; right: 0; bottom: 68px;
+    width: min(390px, calc(100vw - 32px)); height: min(540px, calc(100vh - 140px));
+    background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--r-lg);
+    box-shadow: var(--sombra-4); display: flex; flex-direction: column; overflow: hidden;
+    animation: assistente-entrar 160ms cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes assistente-entrar { from { opacity:0; transform: translateY(8px) scale(.98); } to { opacity:1; transform:none; } }
+  .assistente-painel[hidden] { display: none; }
+
+  .assistente-topo {
+    display: flex; align-items: center; gap: var(--e2);
+    padding: var(--e3) var(--e4); border-bottom: 1px solid var(--borda-suave);
+    background: var(--superficie-2); cursor: grab; user-select: none; touch-action: none;
+  }
+  .assistente-topo:active { cursor: grabbing; }
+  .assistente-topo .titulo { font-weight: 650; font-size: var(--t-aux); flex: 1 1 auto; }
+  .assistente-topo button {
+    background: none; border: none; cursor: pointer; color: var(--texto-suave);
+    padding: var(--e1) var(--e2); border-radius: var(--r-sm); font-size: var(--t-legenda);
+  }
+  .assistente-topo button:hover { background: var(--borda-suave); color: var(--texto); }
+
+  .assistente-mensagens {
+    flex: 1 1 auto; overflow-y: auto; padding: var(--e4);
+    display: flex; flex-direction: column; gap: var(--e3);
+  }
+  .assistente-msg { max-width: 88%; padding: var(--e2) var(--e3); border-radius: var(--r-md); font-size: var(--t-aux); line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+  .assistente-msg.usuario { align-self: flex-end; background: var(--azul); color: #fff; border-bottom-right-radius: var(--e1); }
+  .assistente-msg.assistente { align-self: flex-start; background: var(--superficie-2); border: 1px solid var(--borda-suave); border-bottom-left-radius: var(--e1); }
+  .assistente-msg.erro { align-self: flex-start; background: var(--erro-fundo); color: #991b1b; border: 1px solid #fecaca; }
+  .assistente-fontes { font-size: .72rem; color: var(--texto-suave); margin-top: var(--e1); }
+  .assistente-vazio { color: var(--texto-suave); font-size: var(--t-aux); text-align: center; margin: auto; padding: 0 var(--e3); }
+  .assistente-sugestoes { display: flex; flex-wrap: wrap; gap: var(--e1); justify-content: center; margin-top: var(--e3); }
+  .assistente-sugestoes button {
+    font-size: var(--t-legenda); padding: var(--e1) var(--e2); border-radius: var(--r-full);
+    border: 1px solid var(--borda); background: var(--cartao); color: var(--azul); cursor: pointer;
+  }
+  .assistente-sugestoes button:hover { background: var(--azul-fundo); }
+
+  .assistente-form { display: flex; gap: var(--e2); padding: var(--e3); border-top: 1px solid var(--borda-suave); }
+  .assistente-form textarea {
+    flex: 1 1 auto; min-height: 2.4rem; max-height: 7rem; resize: none;
+    padding: .45rem .6rem; font-size: var(--t-aux); border-radius: var(--r-md);
+  }
+  .assistente-form button {
+    flex: 0 0 auto; padding: 0 var(--e3); border-radius: var(--r-md); border: none;
+    background: var(--azul); color: #fff; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .assistente-form button:disabled { opacity: .55; cursor: not-allowed; }
+  .assistente-digitando { align-self: flex-start; display: flex; gap: 4px; padding: var(--e2) var(--e3); }
+  .assistente-digitando span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--texto-fraco);
+    animation: pontinho 1.2s infinite ease-in-out;
+  }
+  .assistente-digitando span:nth-child(2) { animation-delay: .15s; }
+  .assistente-digitando span:nth-child(3) { animation-delay: .3s; }
+  @keyframes pontinho { 0%,60%,100% { opacity:.3; transform: translateY(0); } 30% { opacity:1; transform: translateY(-3px); } }
+
+  @media print { .assistente-ancora { display: none !important; } }
   @media print {
     .barra-lateral, .topo-pagina, .acoes { display: none !important; }
     main { padding: 0; max-width: none; }
@@ -613,6 +687,238 @@
     </main>
   </div>
 </div>
+
+{# ---------------- Assistente MAPPA: flutuante, arrastável, em toda tela ---------------- #}
+<div class="assistente-ancora" id="assistente-ancora">
+  <div class="assistente-painel" id="assistente-painel" hidden role="dialog" aria-label="Assistente MAPPA" aria-modal="false">
+    <div class="assistente-topo" id="assistente-topo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7h6M9 11h6"/></svg>
+      <span class="titulo">Assistente MAPPA</span>
+      <button type="button" id="assistente-limpar" title="Começar uma conversa nova">Limpar</button>
+      <button type="button" id="assistente-fechar" title="Fechar" aria-label="Fechar">✕</button>
+    </div>
+    <div class="assistente-mensagens" id="assistente-mensagens" aria-live="polite"></div>
+    <form class="assistente-form" id="assistente-form">
+      <textarea id="assistente-entrada" rows="1" placeholder="Pergunte sobre prazos, ritos, competência..." aria-label="Sua pergunta"></textarea>
+      <button type="submit" id="assistente-enviar">Enviar</button>
+    </form>
+  </div>
+  <button class="assistente-bolha" id="assistente-bolha" type="button"
+          aria-label="Abrir o Assistente MAPPA" aria-expanded="false" aria-controls="assistente-painel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4c-1.3 0-2.5-.3-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 1 1 21 11.5z"/></svg>
+  </button>
+</div>
+
+<script>
+/* Assistente MAPPA. O histórico fica no navegador (sessionStorage) porque o
+   sistema é multi-página: sem isso, a conversa se perderia a cada navegação
+   entre módulos - justamente o que o assistente deveria evitar. */
+(function () {
+  var ancora = document.getElementById('assistente-ancora');
+  var bolha = document.getElementById('assistente-bolha');
+  var painel = document.getElementById('assistente-painel');
+  var lista = document.getElementById('assistente-mensagens');
+  var form = document.getElementById('assistente-form');
+  var entrada = document.getElementById('assistente-entrada');
+  var enviar = document.getElementById('assistente-enviar');
+  if (!ancora || !bolha) return;
+
+  var CHAVE_CONVERSA = 'mappa-conversa';
+  var CHAVE_POSICAO = 'mappa-posicao';
+  var SUGESTOES = [
+    'Qual o prazo de conclusão do PCD?',
+    'Quando cabe SAD em vez de PCD?',
+    'O que é o CEDMU e quando é obrigatório?'
+  ];
+  var ocupado = false;
+
+  function conversa() {
+    try { return JSON.parse(sessionStorage.getItem(CHAVE_CONVERSA)) || []; }
+    catch (e) { return []; }
+  }
+  function gravar(msgs) {
+    try { sessionStorage.setItem(CHAVE_CONVERSA, JSON.stringify(msgs)); } catch (e) {}
+  }
+
+  function el(tag, texto, classe) {
+    var n = document.createElement(tag);
+    if (classe) n.className = classe;
+    if (texto) n.textContent = texto;
+    return n;
+  }
+
+  /* O modelo responde em markdown, e mostrar "**Prazo**" cru fica ilegível.
+     A ordem aqui importa por segurança: ESCAPA o HTML primeiro e só depois
+     aplica a formatação, então nada que venha na resposta pode virar marcação
+     executável. Cobre só negrito, itálico, `código` e lista - o suficiente
+     para o que o modelo produz. */
+  function formatar(texto) {
+    var seguro = String(texto || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return seguro
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^\s*[-•]\s+/gm, '• ')
+      .replace(/\n/g, '<br>');
+  }
+
+  function desenhar() {
+    lista.textContent = '';
+    var msgs = conversa();
+    if (!msgs.length) {
+      var vazio = el('div', 'Pergunte qualquer coisa sobre o MAPPA. As respostas se baseiam nas referências oficiais — não em memória.', 'assistente-vazio');
+      var sug = el('div', null, 'assistente-sugestoes');
+      SUGESTOES.forEach(function (s) {
+        var b = el('button', s); b.type = 'button';
+        b.addEventListener('click', function () { entrada.value = s; perguntar(); });
+        sug.appendChild(b);
+      });
+      vazio.appendChild(sug);
+      lista.appendChild(vazio);
+      return;
+    }
+    msgs.forEach(function (m) {
+      var classe = m.papel === 'usuario' ? 'usuario' : (m.erro ? 'erro' : 'assistente');
+      var bloco = el('div', null, 'assistente-msg ' + classe);
+      if (m.papel === 'usuario' || m.erro) {
+        bloco.textContent = m.texto;
+      } else {
+        bloco.innerHTML = formatar(m.texto);
+      }
+      if (m.fontes && m.fontes.length) {
+        bloco.appendChild(el('div', 'Fontes: ' + m.fontes.join(', '), 'assistente-fontes'));
+      }
+      lista.appendChild(bloco);
+    });
+    lista.scrollTop = lista.scrollHeight;
+  }
+
+  function digitando(ligar) {
+    var atual = document.getElementById('assistente-digitando');
+    if (atual) atual.remove();
+    if (!ligar) return;
+    var d = el('div', null, 'assistente-digitando');
+    d.id = 'assistente-digitando';
+    d.appendChild(el('span')); d.appendChild(el('span')); d.appendChild(el('span'));
+    lista.appendChild(d);
+    lista.scrollTop = lista.scrollHeight;
+  }
+
+  function perguntar() {
+    var texto = (entrada.value || '').trim();
+    if (!texto || ocupado) return;
+    var msgs = conversa();
+    msgs.push({ papel: 'usuario', texto: texto });
+    gravar(msgs); desenhar();
+    entrada.value = ''; entrada.style.height = '';
+    ocupado = true; enviar.disabled = true; digitando(true);
+
+    fetch('{{ url_for("assistente.chat") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensagens: msgs.map(function (m) { return { papel: m.papel, texto: m.texto }; }) })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var atualizadas = conversa();
+        if (d.erro) atualizadas.push({ papel: 'assistente', texto: d.erro, erro: true });
+        else atualizadas.push({ papel: 'assistente', texto: d.resposta || '(sem resposta)', fontes: d.fontes });
+        gravar(atualizadas);
+      })
+      .catch(function (e) {
+        var atualizadas = conversa();
+        atualizadas.push({ papel: 'assistente', texto: 'Falha na consulta: ' + e, erro: true });
+        gravar(atualizadas);
+      })
+      .then(function () {
+        ocupado = false; enviar.disabled = false; digitando(false); desenhar(); entrada.focus();
+      });
+  }
+
+  form.addEventListener('submit', function (e) { e.preventDefault(); perguntar(); });
+  entrada.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); perguntar(); }
+  });
+  entrada.addEventListener('input', function () {
+    entrada.style.height = 'auto';
+    entrada.style.height = Math.min(entrada.scrollHeight, 112) + 'px';
+  });
+
+  function abrir(mostrar) {
+    painel.hidden = !mostrar;
+    bolha.setAttribute('aria-expanded', mostrar ? 'true' : 'false');
+    if (mostrar) { desenhar(); entrada.focus(); }
+  }
+  document.getElementById('assistente-fechar').addEventListener('click', function () { abrir(false); });
+  document.getElementById('assistente-limpar').addEventListener('click', function () {
+    gravar([]); desenhar(); entrada.focus();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !painel.hidden) abrir(false);
+  });
+
+  /* --- Arrastar. A âncora é posicionada por left/top; a posição é guardada
+     para o assistente continuar onde o usuário deixou, inclusive ao trocar de
+     tela. Um clique só abre o painel se NÃO houve arrasto - senão, soltar o
+     botão depois de mover abriria o chat sem querer. */
+  var arrastando = false, moveu = false, dx = 0, dy = 0;
+
+  function aplicar(x, y) {
+    var larg = ancora.offsetWidth || 56, alt = ancora.offsetHeight || 56;
+    x = Math.max(8, Math.min(x, window.innerWidth - larg - 8));
+    y = Math.max(8, Math.min(y, window.innerHeight - alt - 8));
+    ancora.style.left = x + 'px';
+    ancora.style.top = y + 'px';
+    ancora.style.right = 'auto';
+    ancora.style.bottom = 'auto';
+  }
+
+  function iniciar(e) {
+    var r = ancora.getBoundingClientRect();
+    arrastando = true; moveu = false;
+    dx = e.clientX - r.left; dy = e.clientY - r.top;
+    if (e.pointerId !== undefined && e.target.setPointerCapture) {
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  }
+  function mover(e) {
+    if (!arrastando) return;
+    moveu = true;
+    aplicar(e.clientX - dx, e.clientY - dy);
+  }
+  function soltar() {
+    if (!arrastando) return;
+    arrastando = false;
+    if (moveu) {
+      try {
+        localStorage.setItem(CHAVE_POSICAO, JSON.stringify({
+          x: parseInt(ancora.style.left, 10), y: parseInt(ancora.style.top, 10)
+        }));
+      } catch (e) {}
+    }
+  }
+
+  bolha.addEventListener('pointerdown', iniciar);
+  document.getElementById('assistente-topo').addEventListener('pointerdown', iniciar);
+  document.addEventListener('pointermove', mover);
+  document.addEventListener('pointerup', soltar);
+
+  bolha.addEventListener('click', function () {
+    if (moveu) { moveu = false; return; }   // foi arrasto, não clique
+    abrir(painel.hidden);
+  });
+
+  try {
+    var pos = JSON.parse(localStorage.getItem(CHAVE_POSICAO));
+    if (pos && typeof pos.x === 'number') aplicar(pos.x, pos.y);
+  } catch (e) {}
+  window.addEventListener('resize', function () {
+    if (ancora.style.left) aplicar(parseInt(ancora.style.left, 10), parseInt(ancora.style.top, 10));
+  });
+})();
+</script>
 
 <script>
   /* Menu lateral no mobile. Comportamento puramente visual. */

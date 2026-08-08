@@ -856,4 +856,7 @@ def criar_app(diretorio_base: Path | str) -> Flask:
     # nada do PCD é alterado por ele. Import tardio para evitar ciclo.
     from pcd_automation.webapp.modulos_extra import bp_modulos
     app.register_blueprint(bp_modulos)
+    # Assistente MAPPA flutuante (widget em base.html, disponível em todas as telas).
+    from pcd_automation.webapp.assistente import bp_assistente
+    app.register_blueprint(bp_assistente)
     return app

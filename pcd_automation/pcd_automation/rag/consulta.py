@@ -60,6 +60,74 @@ def buscar_trechos(pergunta: str, top_k: int = 10) -> list[Trecho]:
     return obter_indice().buscar(pergunta, top_k=top_k)
 
 
+def _consulta_de_busca(mensagens: list[dict], janela: int = 3) -> str:
+    """Monta o texto usado para BUSCAR os trechos, juntando as últimas
+    perguntas do usuário.
+
+    Numa conversa, a pergunta de acompanhamento costuma ser curta demais para
+    achar qualquer coisa sozinha ("e o prazo?", "e se for grave?"). Buscar só
+    com ela devolveria trecho irrelevante e a resposta sairia errada. Juntando
+    as perguntas anteriores, a busca mantém o assunto.
+    """
+    perguntas = [
+        str(m.get("texto") or "").strip()
+        for m in mensagens
+        if m.get("papel") == "usuario" and str(m.get("texto") or "").strip()
+    ]
+    return " ".join(perguntas[-janela:])
+
+
+def responder_conversa(mensagens: list[dict], top_k: int = 10) -> RespostaConsulta:
+    """Responde mantendo o contexto da conversa.
+
+    `mensagens` é a conversa inteira, em ordem: [{"papel": "usuario"|"assistente",
+    "texto": "..."}]. A última precisa ser do usuário.
+    """
+    ultima = ""
+    for m in reversed(mensagens or []):
+        if m.get("papel") == "usuario":
+            ultima = str(m.get("texto") or "").strip()
+            break
+
+    resultado = RespostaConsulta(pergunta=ultima)
+    if not ultima:
+        resultado.erro = "Digite uma pergunta."
+        return resultado
+
+    trechos = buscar_trechos(_consulta_de_busca(mensagens), top_k=top_k)
+    resultado.trechos = trechos
+    if not trechos:
+        resultado.erro = (
+            "Nenhum trecho relevante foi encontrado nas referências do MAPPA para essa pergunta."
+        )
+        return resultado
+
+    historico = [
+        {"role": "user" if m.get("papel") == "usuario" else "assistant",
+         "content": str(m.get("texto") or "")}
+        for m in mensagens
+        if str(m.get("texto") or "").strip()
+    ]
+    # Os trechos entram logo antes da última pergunta, para o modelo respondê-la
+    # olhando as referências recuperadas AGORA, e não as de uma pergunta anterior.
+    conteudo_final = historico[-1]["content"]
+    historico[-1] = {
+        "role": "user",
+        "content": (
+            f"Trechos de referência recuperados para esta pergunta:\n\n{_formatar_trechos(trechos)}\n\n"
+            f"Pergunta do encarregado: {conteudo_final}"
+        ),
+    }
+
+    resposta, erro = chamar_openrouter(
+        [{"role": "system", "content": PROMPT_SISTEMA}] + historico,
+        max_tokens=1024,
+    )
+    resultado.resposta = resposta
+    resultado.erro = erro
+    return resultado
+
+
 def responder(pergunta: str, top_k: int = 10) -> RespostaConsulta:
     pergunta = (pergunta or "").strip()
     resultado = RespostaConsulta(pergunta=pergunta)
