@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 
+from pcd_automation.assistente_redator import MODOS, detectar_modo, executar as executar_redacao
 from pcd_automation.rag import consulta as rag_consulta
 
 bp_assistente = Blueprint("assistente", __name__, url_prefix="/assistente")
@@ -51,6 +52,20 @@ def chat():
     if not mensagens:
         return jsonify({"erro": "Digite uma pergunta."}), 400
 
+    # Roteamento entre as duas especialidades: comando "[MODO] ..." aciona o
+    # redator; qualquer outra coisa é consulta ao MAPPA. O comando é detectado
+    # na ÚLTIMA mensagem, para o encarregado poder alternar entre tirar uma
+    # dúvida e pedir uma redação dentro da mesma conversa.
+    modo, conteudo = detectar_modo(mensagens[-1]["texto"])
+    if modo:
+        resultado = executar_redacao(modo, conteudo, historico=mensagens[:-1])
+        return jsonify({
+            "resposta": resultado.texto,
+            "erro": resultado.erro,
+            "fontes": resultado.fontes,
+            "modo": resultado.modo,
+        })
+
     resultado = rag_consulta.responder_conversa(mensagens)
     return jsonify({
         "resposta": resultado.resposta,
@@ -59,4 +74,11 @@ def chat():
         # integral dos trechos deixaria o balão do chat ilegível. Quem quiser
         # ler o trecho inteiro usa a tela de Consulta.
         "fontes": sorted({t.arquivo for t in resultado.trechos}),
+        "modo": None,
     })
+
+
+@bp_assistente.route("/modos")
+def modos():
+    """Modos de redação disponíveis, para o widget montar os atalhos."""
+    return jsonify([{"comando": c, "descricao": d} for c, d in MODOS.items()])
