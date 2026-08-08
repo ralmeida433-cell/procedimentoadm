@@ -361,6 +361,12 @@
   .item-lista .item-principal {
     flex: 1 1 240px; font-weight: 600; color: var(--azul);
     text-decoration: none; min-width: 0;
+    /* Um texto longo SEM espaços (nome colado, número de portaria mal
+       digitado) não tem onde quebrar e vazava para fora do cartão, empurrando
+       os botões da linha. `anywhere` permite a quebra em qualquer ponto
+       nesses casos, sem afetar o texto normal, que continua quebrando por
+       palavra. */
+    overflow-wrap: anywhere;
   }
   .item-lista a.item-principal:hover { text-decoration: underline; }
 

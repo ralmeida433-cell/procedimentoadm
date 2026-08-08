@@ -424,9 +424,21 @@ def _valores_autofill(modulo_id: str, definicao: dict) -> tuple[dict, list[str]]
     return valores, prefilled
 
 
+LIMITE_RESUMO = 120
+
+
 def _resumo_registro(definicao: dict, dados: dict) -> str:
-    partes = [dados.get(chave) for chave in definicao["campos_resumo"] if dados.get(chave)]
-    return " — ".join(str(p) for p in partes) or "(sem dados)"
+    """Rótulo do registro na lista.
+
+    Truncado porque alguns campos de resumo são de texto longo (o objeto da
+    apuração do LI, por exemplo): sem limite, um parágrafo inteiro viraria o
+    rótulo e a lista deixaria de ser escaneável.
+    """
+    partes = [str(dados[chave]).strip() for chave in definicao["campos_resumo"] if dados.get(chave)]
+    texto = " ".join(" — ".join(partes).split())  # colapsa quebras de linha
+    if not texto:
+        return "(sem dados)"
+    return texto if len(texto) <= LIMITE_RESUMO else texto[:LIMITE_RESUMO].rstrip() + "…"
 
 
 # ---------------------------------------------------------------- rotas
