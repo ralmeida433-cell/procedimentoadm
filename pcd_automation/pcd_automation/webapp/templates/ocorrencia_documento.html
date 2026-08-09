@@ -17,12 +17,17 @@
     </div>
 
     <div class="caixa caixa-aviso">
-      <strong>Falta a conduta individualizada.</strong> A base da ocorrência guarda os fatos, mas a
-      descrição do mérito de cada militar é redação do proponente — o documento saiu com
-      <em>[PREENCHER]</em> nesses trechos. Complete no Word, ou use
-      <a href="{{ url_for('modulos.reds_recompensa') }}">Analisar REDS com IA</a>, que redige uma
-      proposta de conduta por militar para você revisar.
+      <strong>Revise as condutas antes de assinar.</strong> A conduta de cada militar foi redigida
+      a partir do histórico da ocorrência. Onde o histórico não diz quem fez o quê, o texto vem da
+      função exercida — confira se corresponde à atuação real de cada um.
     </div>
+
+    {% if observacoes %}
+      <div class="caixa caixa-aviso">
+        <strong>Observações da redação:</strong>
+        <ul>{% for o in observacoes %}<li>{{ o }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
 
     <h3>Documento</h3>
     <ul class="documentos">
@@ -32,16 +37,16 @@
       </li>
     </ul>
 
-    <h3>Militares incluídos</h3>
-    <ul class="documentos">
-      {% for m in militares %}
-        <li class="item-lista">
-          <span class="item-principal">{{ m.posto }} {{ m.nome }}</span>
-          {% if m.numero %}<span class="legenda">nº {{ m.numero }}</span>{% endif %}
-          {% if m.funcao %}<span class="badge badge-andamento">{{ m.funcao }}</span>{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+    <h3>Conduta individualizada de cada militar</h3>
+    <p class="legenda">É este o texto que saiu no documento. Confira militar por militar.</p>
+    {% for m in militares %}
+      <div style="border-top:1px solid var(--borda-suave); padding-top:var(--e3); margin-top:var(--e3);">
+        <strong>{{ m.posto }} {{ m.nome }}</strong>
+        {% if m.numero %}<span class="legenda"> — nº {{ m.numero }}</span>{% endif %}
+        {% if m.funcao %}<span class="badge badge-andamento">{{ m.funcao }}</span>{% endif %}
+        <p style="font-size:var(--t-aux); margin:var(--e2) 0 0;">{{ m.sintese }}</p>
+      </div>
+    {% endfor %}
 
     <div class="acoes">
       <a class="btn btn-primario" href="{{ url_for('modulos.baixar_documento_recompensa', nome_arquivo=nome_arquivo) }}">⬇ Baixar documento</a>

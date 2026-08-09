@@ -42,6 +42,7 @@ from pcd_automation.gerador_acidente_viatura import gerar_documentos as gerar_do
 from pcd_automation.gerador_levantamento_inicial import MEDIDAS as MEDIDAS_LI
 from pcd_automation.gerador_levantamento_inicial import gerar_documentos as gerar_documentos_li
 from pcd_automation.ia_cliente import RespostaIA, chamar_openrouter_detalhado
+from pcd_automation.condutas_ia import redigir_condutas
 from pcd_automation.extrator_ocorrencia import extrair_ocorrencia
 from pcd_automation.ocorrencia import (
     CAMPOS_ENDERECO, CAMPOS_PESSOA, TIPOS_ENVOLVIMENTO, carregar_ocorrencia,
@@ -1095,14 +1096,20 @@ def gerar_recompensa_de_ocorrencia(ocorrencia_id):
             "nome": (m.get("nome_militar") or "").strip(),
             "unidade": (m.get("unidade") or oc.get("unidade") or "").strip(),
             "funcao": (m.get("funcao") or "").strip(),
-            # A conduta individualizada é redação do proponente: o extrator de
-            # ocorrência coleta os fatos, não redige mérito. Fica marcado para
-            # o usuário completar no Word ou pela tela de análise do REDS.
-            "sintese": "[PREENCHER: conduta individualizada deste militar]",
+            "sintese": "",   # preenchida logo abaixo pela IA
             "requisitos": {chave: False for chave, _ in REQUISITOS_RECOMPENSA},
         }
         for m in equipe
     ]
+
+    # Conduta individualizada redigida a partir do histórico da ocorrência.
+    # Quando o histórico não distingue quem fez o quê, o texto é derivado da
+    # FUNÇÃO do militar (dado real da base) e, na falta dela, registra atuação
+    # conjunta - creditar a alguém um feito que o histórico não sustenta seria
+    # o pior defeito de uma proposta de recompensa.
+    condutas, observacoes = redigir_condutas(dados, militares)
+    for militar, conduta in zip(militares, condutas):
+        militar["sintese"] = conduta
 
     data_fato = None
     try:
@@ -1152,4 +1159,5 @@ def gerar_recompensa_de_ocorrencia(ocorrencia_id):
     return render_template(
         "ocorrencia_documento.html", ocorrencia_id=ocorrencia_id,
         nome_arquivo=nome_arquivo, erro=None, militares=militares,
+        observacoes=observacoes,
     )
