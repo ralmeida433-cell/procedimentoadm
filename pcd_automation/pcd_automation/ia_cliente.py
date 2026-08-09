@@ -74,10 +74,19 @@ def _tentar_modelo(
     max_tokens: int, timeout: int, json_obrigatorio: bool,
 ) -> tuple[str | None, str | None, bool]:
     """Uma tentativa em um modelo. Retorna (conteúdo, erro, erro_temporário)."""
-    corpo = {"model": modelo, "messages": mensagens, "max_tokens": max_tokens}
+    # O "reasoning" fica desligado SEMPRE, não só quando se pede JSON: o modelo
+    # padrão é de raciocínio e, em respostas de texto corrido, chegou a devolver
+    # a cadeia de pensamento em inglês no lugar da resposta ("The user is asking
+    # if they can conduct..."). Num assistente que o encarregado consulta para
+    # redigir documento, isso é resposta inutilizável.
+    corpo = {
+        "model": modelo,
+        "messages": mensagens,
+        "max_tokens": max_tokens,
+        "reasoning": {"enabled": False},
+    }
     if json_obrigatorio:
         corpo["response_format"] = {"type": "json_object"}
-        corpo["reasoning"] = {"enabled": False}
 
     try:
         resposta_http = requests.post(
