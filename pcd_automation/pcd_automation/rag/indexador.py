@@ -143,10 +143,46 @@ class IndiceMappa:
 
 
 _indice_global: IndiceMappa | None = None
+_assinatura_global: tuple | None = None
+
+
+def _assinatura_referencias(raiz: Path) -> tuple:
+    """Impressão digital do conjunto de arquivos: nome, tamanho e data de
+    modificação de cada .md."""
+    itens = []
+    raizes = [raiz]
+    if raiz.name == "references" and (raiz.parent / "SKILL.md").exists():
+        raizes.append(raiz.parent)
+    vistos: set[Path] = set()
+    for r in raizes:
+        for caminho in sorted(r.rglob("*.md")):
+            if caminho in vistos:
+                continue
+            vistos.add(caminho)
+            try:
+                st = caminho.stat()
+            except OSError:
+                continue
+            itens.append((str(caminho), st.st_size, int(st.st_mtime)))
+    return tuple(itens)
 
 
 def obter_indice() -> IndiceMappa:
-    global _indice_global
-    if _indice_global is None:
-        _indice_global = IndiceMappa()
+    """Índice em memória, reconstruído quando os arquivos de referência mudam.
+
+    Sem essa verificação, o índice era montado uma vez por processo e nunca
+    mais: acrescentar uma norma à skill não surtia efeito nenhum até alguém
+    reiniciar o servidor - e, pior, sem aviso. O assistente continuava
+    respondendo "não encontrei nas referências" para algo que já estava lá.
+
+    Comparar tamanho e data de modificação é barato (só um `stat` por arquivo,
+    ~34 hoje) e roda antes de cada consulta; a reindexação só acontece quando
+    algo realmente mudou.
+    """
+    global _indice_global, _assinatura_global
+    raiz = _raiz_referencias_padrao()
+    assinatura = _assinatura_referencias(raiz)
+    if _indice_global is None or assinatura != _assinatura_global:
+        _indice_global = IndiceMappa(raiz)
+        _assinatura_global = assinatura
     return _indice_global
