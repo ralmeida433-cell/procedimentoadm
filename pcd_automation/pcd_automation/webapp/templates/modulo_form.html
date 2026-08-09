@@ -23,6 +23,29 @@
     </div>
   {% endif %}
 
+  {% if valores.militares %}
+    {# Guarnição da ocorrência: um registro só, com a conduta de cada militar.
+       Fica fora do formulário declarativo (que trata um proposto por campo),
+       então é exibida aqui para conferência - e preservada ao salvar. #}
+    <fieldset class="grupo-campos">
+      <legend>Guarnição — {{ valores.militares | length }} militar(es)</legend>
+      <p class="legenda">
+        Esta proposta abrange toda a guarnição da ocorrência, como manda a economia
+        processual. O documento gerado lista os militares abaixo com a conduta de cada um.
+      </p>
+      {% for m in valores.militares %}
+        <div style="border-top:1px solid var(--borda-suave); padding-top:var(--e3); margin-top:var(--e3);">
+          <strong>{{ m.posto }} {{ m.nome }}</strong>
+          {% if m.numero %}<span class="legenda"> — nº {{ m.numero }}</span>{% endif %}
+          {% if m.funcao %}<span class="badge badge-andamento">{{ m.funcao }}</span>{% endif %}
+          {% if m.individualizacao %}
+            <p style="font-size:var(--t-aux); margin:var(--e2) 0 0;">{{ m.individualizacao }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </fieldset>
+  {% endif %}
+
   <form method="post" action="{{ action }}">
     {% for secao in definicao.secoes %}
       <fieldset class="grupo-campos">

@@ -434,7 +434,15 @@ def _resumo_registro(definicao: dict, dados: dict) -> str:
     apuração do LI, por exemplo): sem limite, um parágrafo inteiro viraria o
     rótulo e a lista deixaria de ser escaneável.
     """
-    partes = [str(dados[chave]).strip() for chave in definicao["campos_resumo"] if dados.get(chave)]
+    militares = dados.get("militares")
+    if isinstance(militares, list) and militares:
+        # Registro de ocorrência (guarnição inteira): o rótulo mostra quantos
+        # militares e quem, em vez de um "proposto" que não existe sozinho.
+        nomes = ", ".join(str(m.get("nome") or "?") for m in militares)
+        cabeca = str(dados.get("reds_recompensa") or "").strip() or "(sem REDS)"
+        partes = [cabeca, f"{len(militares)} militar(es): {nomes}"]
+    else:
+        partes = [str(dados[chave]).strip() for chave in definicao["campos_resumo"] if dados.get(chave)]
     texto = " ".join(" — ".join(partes).split())  # colapsa quebras de linha
     if not texto:
         return "(sem dados)"
@@ -513,7 +521,11 @@ def editar(modulo_id, registro_id):
                 action=url_for(".editar", modulo_id=modulo_id, registro_id=registro_id),
                 opcoes_posto=OPCOES_POSTO,
             )
-        _salvar_registro(modulo_id, registro_id, valores, criado_em=payload.get("criado_em"))
+        # Mescla sobre o que já estava salvo: o formulário declarativo não
+        # conhece a lista `militares` da guarnição, e substituir o dicionário
+        # inteiro a apagaria silenciosamente.
+        dados_finais = {**(payload.get("dados") or {}), **valores}
+        _salvar_registro(modulo_id, registro_id, dados_finais, criado_em=payload.get("criado_em"))
         return redirect(url_for(".lista", modulo_id=modulo_id))
 
     return render_template(
@@ -765,25 +777,41 @@ def _militares_do_form(form) -> list[dict]:
     return militares
 
 
-def _criar_registros_recompensa(form, militares: list[dict]) -> int:
-    """Cria um registro de Proposta de Recompensa por militar (persistência
-    JSON do módulo, mesma dos formulários manuais)."""
+def _criar_registro_recompensa(form, militares: list[dict]) -> str:
+    """Cria UM registro por ocorrência, com a guarnição inteira dentro.
+
+    A proposta de recompensa nascida de uma mesma atuação tramita num único
+    processo: é o que dá ao Comandante a visão sistêmica do fato e a cota-parte
+    de cada militar. Antes isto gravava um registro por militar, e quatro
+    policiais de uma mesma prisão viravam quatro propostas soltas na lista -
+    quatro processos onde deveria haver um.
+
+    O documento .docx já era único desde sempre (o template itera `militares`);
+    a duplicação estava só aqui, na persistência.
+    """
     definicao = MODULOS["recompensa"]
     valores_base, _ = _valores_autofill("recompensa", definicao)
-    for m in militares:
-        dados = dict(valores_base)
-        dados.update({
-            "posto_proposto": m["posto"],
-            "numero_proposto": m["numero"],
-            "nome_proposto": m["nome"],
-            "unidade_proposto": m["unidade"],
-            "sintese_justificativa": m["sintese"],
-            "reds_recompensa": (form.get("reds") or "").strip(),
-            "tipo_recompensa": (form.get("tipo_recompensa") or "").strip() or "Elogio Individual",
-            "data_proposta": date.today().isoformat(),
-        })
-        _salvar_registro("recompensa", uuid4().hex[:8], dados)
-    return len(militares)
+    dados = dict(valores_base)
+    dados.update({
+        "reds_recompensa": (form.get("reds") or "").strip(),
+        "tipo_recompensa": (form.get("tipo_recompensa") or "").strip() or "Elogio Individual",
+        "data_proposta": date.today().isoformat(),
+        "local_fato_linha": (form.get("local_fato_linha") or "").strip(),
+        "sintese_justificativa": (form.get("descricao") or "").strip(),
+        # A guarnição. Cada item guarda a conduta individualizada, que é o que
+        # o documento imprime por militar.
+        "militares": [
+            {
+                "posto": m["posto"], "numero": m["numero"], "nome": m["nome"],
+                "unidade": m["unidade"], "funcao": m.get("funcao", ""),
+                "individualizacao": m["sintese"], "requisitos": m.get("requisitos", []),
+            }
+            for m in militares
+        ],
+    })
+    registro_id = uuid4().hex[:8]
+    _salvar_registro("recompensa", registro_id, dados)
+    return registro_id
 
 
 @bp_modulos.route("/recompensa/reds/criar", methods=["POST"])
@@ -791,7 +819,7 @@ def criar_propostas_reds():
     """Cria uma Proposta de Recompensa por militar selecionado na tela de
     análise do REDS e, se pedido, gera também o documento oficial (.docx)."""
     militares = _militares_do_form(request.form)
-    _criar_registros_recompensa(request.form, militares)
+    _criar_registro_recompensa(request.form, militares)
 
     if request.form.get("gerar_documento") and militares:
         data_fato = None
