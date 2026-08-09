@@ -1061,3 +1061,95 @@ def criar_pcd_de_ocorrencia(ocorrencia_id):
     chave_rascunho = f"rascunho-{uuid4().hex[:8]}"
     estado.salvar_rascunho(base, chave_rascunho, dados)
     return redirect(url_for("pcd.editar_rascunho", chave=chave_rascunho))
+
+
+@bp_modulos.route("/ocorrencias/<ocorrencia_id>/gerar-recompensa", methods=["POST"])
+def gerar_recompensa_de_ocorrencia(ocorrencia_id):
+    """Gera a Proposta de Recompensa (.docx) direto da ocorrência importada.
+
+    Fecha o caminho que faltava: até aqui a importação do REDS montava a base
+    mas não produzia documento nenhum - era preciso refazer a análise pela tela
+    da Recompensa. Reaproveita o mesmo gerador e o mesmo modelo oficial, e
+    grava UM registro da ocorrência com a guarnição inteira, como no outro
+    fluxo.
+    """
+    base = _diretorio_base_ocorrencias()
+    payload = carregar_ocorrencia(base, ocorrencia_id)
+    if payload is None:
+        abort(404)
+    dados = payload.get("dados") or {}
+    oc = dados.get("ocorrencia") or {}
+    equipe = dados.get("equipe_policial") or []
+
+    if not equipe:
+        return render_template(
+            "ocorrencia_documento.html", ocorrencia_id=ocorrencia_id, nome_arquivo=None,
+            erro="A ocorrência não tem militares na equipe policial. Abra a revisão e "
+                 "cadastre ao menos um militar antes de gerar a proposta.",
+        )
+
+    militares = [
+        {
+            "posto": (m.get("cargo_graduacao") or "").strip(),
+            "numero": (m.get("num_policial") or "").strip(),
+            "nome": (m.get("nome_militar") or "").strip(),
+            "unidade": (m.get("unidade") or oc.get("unidade") or "").strip(),
+            "funcao": (m.get("funcao") or "").strip(),
+            # A conduta individualizada é redação do proponente: o extrator de
+            # ocorrência coleta os fatos, não redige mérito. Fica marcado para
+            # o usuário completar no Word ou pela tela de análise do REDS.
+            "sintese": "[PREENCHER: conduta individualizada deste militar]",
+            "requisitos": {chave: False for chave, _ in REQUISITOS_RECOMPENSA},
+        }
+        for m in equipe
+    ]
+
+    data_fato = None
+    try:
+        data_fato = date.fromisoformat(str(oc.get("data_fato") or ""))
+    except ValueError:
+        pass
+
+    dados_doc = {
+        "linha_unidade": oc.get("unidade") or "",
+        "cidade_sede": (oc.get("municipio") or "").split("/")[0],
+        "tipo_recompensa": (request.form.get("tipo_recompensa") or "Elogio Individual").strip(),
+        "data_fato": data_fato,
+        "data_fato_texto": oc.get("data_fato") or "",
+        "local_fato_linha": ", ".join(p for p in [oc.get("local"), oc.get("municipio")] if p),
+        "descricao": oc.get("historico_sucinto") or "",
+    }
+    objetos = [
+        MilitarProposta(
+            numero=m["numero"], posto=m["posto"], nome=m["nome"], unidade=m["unidade"],
+            funcao=m["funcao"], individualizacao=m["sintese"], requisitos=m["requisitos"],
+        )
+        for m in militares
+    ]
+    reds_slug = re.sub(r"[^A-Za-z0-9]+", "_", oc.get("reds_numero") or "sem_reds").strip("_")
+    nome_arquivo = f"proposta_recompensa_{reds_slug}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+    gerar_documento_recompensa(
+        montar_contexto(dados_doc, objetos),
+        _diretorio_modulo("recompensa") / "documentos" / nome_arquivo,
+    )
+
+    # Registro único da ocorrência, com a guarnição - mesmo formato do fluxo de
+    # análise do REDS, para as duas portas de entrada produzirem a mesma coisa.
+    class _FormFalso(dict):
+        def get(self, chave, padrao=None):
+            return dict.get(self, chave, padrao)
+
+    _criar_registro_recompensa(
+        _FormFalso({
+            "reds": oc.get("reds_numero") or "",
+            "tipo_recompensa": dados_doc["tipo_recompensa"],
+            "local_fato_linha": dados_doc["local_fato_linha"],
+            "descricao": dados_doc["descricao"],
+        }),
+        militares,
+    )
+
+    return render_template(
+        "ocorrencia_documento.html", ocorrencia_id=ocorrencia_id,
+        nome_arquivo=nome_arquivo, erro=None, militares=militares,
+    )

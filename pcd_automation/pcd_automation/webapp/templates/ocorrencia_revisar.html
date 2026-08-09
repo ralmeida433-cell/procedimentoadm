@@ -128,11 +128,28 @@
 <div class="cartao">
   <h2>Usar esta ocorrência</h2>
   <p class="subtitulo">Abre o formulário já preenchido com estes dados. Tudo continua editável.</p>
-  <div class="acoes" style="margin-top:0;">
+  <form method="post" action="{{ url_for('modulos.gerar_recompensa_de_ocorrencia', ocorrencia_id=ocorrencia_id) }}"
+        data-demorado data-etapas="Montando o documento|Aplicando o padrão visual (brasão, fonte e margens)"
+        style="margin-bottom:var(--e4);">
+    <div class="campo">
+      <label for="tipo_recompensa">Tipo de recompensa</label>
+      <select id="tipo_recompensa" name="tipo_recompensa">
+        {% for t in ["Elogio Individual", "Elogio Coletivo", "Nota do Mérito", "Dispensa do Serviço"] %}
+          <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="acoes" style="margin-top:var(--e3);">
+      <button type="submit" class="btn btn-primario">Gerar Proposta de Recompensa (.docx)</button>
+      <a class="btn btn-secundario" href="{{ url_for('modulos.criar_pcd_de_ocorrencia', ocorrencia_id=ocorrencia_id) }}">Criar rascunho de PCD</a>
+    </div>
+  </form>
+
+  <p class="legenda">Ou abrir um formulário já preenchido com estes dados:</p>
+  <div class="acoes" style="margin-top:var(--e2);">
     {% for mid, titulo in modulos %}
       <a class="btn btn-secundario" href="{{ url_for('modulos.novo', modulo_id=mid, ocorrencia=ocorrencia_id) }}">{{ titulo }}</a>
     {% endfor %}
-    <a class="btn btn-primario" href="{{ url_for('modulos.criar_pcd_de_ocorrencia', ocorrencia_id=ocorrencia_id) }}">Criar rascunho de PCD</a>
   </div>
 </div>
 

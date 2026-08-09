@@ -576,6 +576,22 @@
     color: var(--texto);
   }
 
+  /* Aviso de operação demorada (upload + OCR + IA). Sem isto o usuário clica,
+     nada muda por até um minuto, e ele conclui que o botão não funcionou. */
+  .aguarde {
+    display: flex; align-items: center; gap: var(--e3);
+    margin-top: var(--e4); padding: var(--e3) var(--e4);
+    border: 1px solid #dbe5fb; border-radius: var(--r-md);
+    background: var(--azul-fundo); color: var(--azul-escuro); font-size: var(--t-aux);
+  }
+  .aguarde-roda {
+    width: 18px; height: 18px; flex: 0 0 18px; border-radius: 50%;
+    border: 2px solid var(--azul-claro); border-top-color: transparent;
+    animation: girar .7s linear infinite;
+  }
+  .aguarde-etapa { font-weight: 600; }
+  .aguarde-detalhe { color: var(--texto-suave); font-size: var(--t-legenda); }
+
   .assistente-modo-tag {
     display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .04em;
     background: var(--azul); color: #fff; padding: 1px var(--e1); border-radius: var(--r-sm);
@@ -1075,6 +1091,50 @@
     if (fundo) fundo.addEventListener('click', function () { alternar(false); });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') alternar(false);
+    });
+  })();
+
+  /* Feedback de operação demorada.
+     Upload + OCR + IA levam até um minuto e a página só troca no fim. Sem
+     sinal nenhum o usuário conclui que o botão não funcionou e clica de novo,
+     disparando uma segunda análise. Vale para qualquer formulário marcado com
+     data-demorado; as etapas exibidas vêm de data-etapas (separadas por "|"). */
+  (function () {
+    var ETAPAS_PADRAO = 'Enviando o arquivo|Lendo o documento (OCR, se necessário)|Analisando com IA|Montando o resultado';
+    document.querySelectorAll('form[data-demorado]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        if (form.dataset.enviando) return;          // evita envio duplicado
+        if (typeof form.checkValidity === 'function' && !form.checkValidity()) return;
+        form.dataset.enviando = '1';
+
+        form.querySelectorAll('button[type=submit]').forEach(function (b) {
+          b.disabled = true;
+          b.setAttribute('data-carregando', '1');
+          b.textContent = 'Processando...';
+        });
+
+        var caixa = document.createElement('div');
+        caixa.className = 'aguarde';
+        caixa.setAttribute('role', 'status');
+        caixa.innerHTML = '<span class="aguarde-roda" aria-hidden="true"></span>' +
+          '<span><span class="aguarde-etapa"></span><br>' +
+          '<span class="aguarde-detalhe">Pode levar até um minuto. Não feche nem recarregue a página.</span></span>';
+        form.appendChild(caixa);
+
+        /* As etapas são uma estimativa de progresso: o servidor processa tudo
+           numa requisição só e não reporta andamento parcial. Servem para
+           mostrar que há trabalho acontecendo - por isso a última permanece
+           até a página trocar, em vez de fingir que terminou. */
+        var etapas = (form.dataset.etapas || ETAPAS_PADRAO).split('|');
+        var alvo = caixa.querySelector('.aguarde-etapa');
+        var i = 0;
+        alvo.textContent = etapas[0];
+        var timer = setInterval(function () {
+          i += 1;
+          if (i >= etapas.length) { clearInterval(timer); return; }
+          alvo.textContent = etapas[i];
+        }, 6000);
+      });
     });
   })();
 </script>

@@ -14,7 +14,8 @@
     <div class="caixa caixa-erro"><strong>Não foi possível importar:</strong> {{ erro }}</div>
   {% endif %}
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" data-demorado
+          data-etapas="Enviando o arquivo|Lendo o documento (OCR, se necessário)|Extraindo ocorrência, pessoas e equipe|Conferindo documentos por padrão (CPF, RG, telefone)">
     <div class="campo">
       <label for="arquivo">Arquivo</label>
       <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx,.png,.jpg,.jpeg" required>

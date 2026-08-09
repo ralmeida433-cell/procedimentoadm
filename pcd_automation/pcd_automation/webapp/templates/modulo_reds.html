@@ -15,7 +15,8 @@
   {% endif %}
 
   {% if not resultado %}
-    <form method="post" action="{{ url_for('modulos.reds_recompensa') }}" enctype="multipart/form-data">
+    <form method="post" action="{{ url_for('modulos.reds_recompensa') }}" enctype="multipart/form-data" data-demorado
+          data-etapas="Enviando o REDS|Lendo o documento (OCR, se necessário)|Identificando os militares empenhados|Individualizando a conduta de cada um">
       <div class="campo">
         <label for="arquivo">Arquivo do REDS</label>
         <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx,.png,.jpg,.jpeg" required>

@@ -14,7 +14,8 @@
     <div class="caixa caixa-erro">{{ erro }}</div>
   {% endif %}
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" data-demorado
+          data-etapas="Enviando o arquivo|Lendo o documento (OCR, se necessário)|Classificando o tipo de procedimento|Extraindo os campos">
     <label for="arquivo">Arquivo (PDF, DOCX, PNG ou JPG)</label>
     <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx,.png,.jpg,.jpeg" required>
     <div class="acoes">
