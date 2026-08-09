@@ -78,17 +78,40 @@ def _agrupar_paragrafos(paragrafos: list[str], tamanho_maximo: int) -> list[str]
 
 
 def carregar_trechos(raiz_referencias: Path) -> list[Trecho]:
+    """Carrega o conhecimento da skill `especialista-mappa`.
+
+    Indexa TODOS os .md da skill, e não só os de `references/`: o `SKILL.md`
+    da raiz traz a metodologia (os 4 modos de atuação, o índice de referências
+    e os avisos permanentes), que é justamente a parte procedimental - como
+    conduzir, o que auditar, o que nunca fazer. Sem ele, o assistente sabia os
+    artigos mas não o método de trabalho da skill.
+
+    A busca é recursiva (`rglob`) para acompanhar a skill se ela ganhar
+    subpastas de referência.
+    """
     if not raiz_referencias.exists():
         raise FileNotFoundError(
             f"Pasta de referências do MAPPA não encontrada em: {raiz_referencias}. "
             "Defina a variável de ambiente MAPPA_REFERENCIAS_DIR se o caminho padrão não se aplicar."
         )
+    raizes = [raiz_referencias]
+    # `references/` fica dentro da skill; subindo um nível alcançamos o
+    # SKILL.md. Só vale quando o caminho é mesmo o padrão da skill - se o
+    # usuário apontou MAPPA_REFERENCIAS_DIR para outro lugar, não saímos de lá.
+    if raiz_referencias.name == "references" and (raiz_referencias.parent / "SKILL.md").exists():
+        raizes.append(raiz_referencias.parent)
+
     trechos: list[Trecho] = []
-    for caminho in sorted(raiz_referencias.glob("*.md")):
-        texto = caminho.read_text(encoding="utf-8")
-        paragrafos = _dividir_em_paragrafos(texto)
-        for i, grupo in enumerate(_agrupar_paragrafos(paragrafos, TAMANHO_MAXIMO_CHUNK)):
-            trechos.append(Trecho(arquivo=caminho.name, indice=i, texto=grupo))
+    vistos: set[Path] = set()
+    for raiz in raizes:
+        for caminho in sorted(raiz.rglob("*.md")):
+            if caminho in vistos:
+                continue
+            vistos.add(caminho)
+            texto = caminho.read_text(encoding="utf-8")
+            paragrafos = _dividir_em_paragrafos(texto)
+            for i, grupo in enumerate(_agrupar_paragrafos(paragrafos, TAMANHO_MAXIMO_CHUNK)):
+                trechos.append(Trecho(arquivo=caminho.name, indice=i, texto=grupo))
     return trechos
 
 

@@ -164,24 +164,34 @@ def executar(modo: str, conteudo: str, historico: list[dict] | None = None) -> R
         partes += ["", FORMATO_DUAS_PARTES]
     fontes: list[str] = []
 
-    if modo == "FUNDAMENTAR":
-        # Fundamentação não pode sair da memória do modelo - vai buscar no índice.
-        consulta = conteudo or " ".join(
-            str(m.get("texto") or "") for m in historico if m.get("papel") == "usuario"
+    # Todo modo consulta o conhecimento da skill `especialista-mappa` - é de lá
+    # que vêm os ritos, prazos e a metodologia, e não da memória do modelo. A
+    # diferença é o peso: em FUNDAMENTAR os trechos são a ÚNICA fonte
+    # permitida; nos demais, são o guia procedimental sobre o texto do
+    # encarregado, que continua sendo a fonte dos fatos.
+    consulta = conteudo or " ".join(
+        str(m.get("texto") or "") for m in historico if m.get("papel") == "usuario"
+    )
+    trechos = buscar_trechos(consulta, top_k=8 if modo == "FUNDAMENTAR" else 5)
+
+    if modo == "FUNDAMENTAR" and not trechos:
+        return RespostaRedator(
+            erro="Não encontrei trechos das referências do MAPPA para fundamentar esse caso. "
+                 "Descreva a conduta com outras palavras ou cite o instituto (PCD, SAD, LI, RIP).",
+            modo=modo,
         )
-        trechos = buscar_trechos(consulta, top_k=8)
-        if not trechos:
-            return RespostaRedator(
-                erro="Não encontrei trechos das referências do MAPPA para fundamentar esse caso. "
-                     "Descreva a conduta com outras palavras ou cite o instituto (PCD, SAD, LI, RIP).",
-                modo=modo,
-            )
+
+    if trechos:
         fontes = sorted({t.arquivo for t in trechos})
-        partes += [
-            "",
-            "TRECHOS DE REFERÊNCIA (use somente estes):",
-            "\n\n---\n\n".join(f"[{t.arquivo}]\n{t.texto}" for t in trechos),
-        ]
+        if modo == "FUNDAMENTAR":
+            cabecalho = "TRECHOS DE REFERÊNCIA (use SOMENTE estes; não cite artigo que não esteja aqui):"
+        else:
+            cabecalho = (
+                "CONHECIMENTO DO ESPECIALISTA MAPPA recuperado para este caso. Use como guia de rito, "
+                "prazo, competência e nomenclatura. Se citar norma, cite apenas o que estiver aqui. "
+                "Estes trechos NÃO são fatos do caso - os fatos vêm só do que o encarregado informou:"
+            )
+        partes += ["", cabecalho, "\n\n---\n\n".join(f"[{t.arquivo}]\n{t.texto}" for t in trechos)]
 
     mensagens = [{"role": "system", "content": "\n".join(partes)}]
     for m in historico:
