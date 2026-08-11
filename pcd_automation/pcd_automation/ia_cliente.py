@@ -25,7 +25,8 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 
 import requests
 
@@ -68,12 +69,25 @@ _PADRAO_TEMPORARIO = re.compile(
 )
 
 
+# Uma falha passageira costuma passar em segundos. Repetir no MESMO modelo
+# antes de trocar evita descer para um reserva menor por causa de um soluço -
+# a resposta do modelo principal é melhor. Duas tentativas: mais que isso só
+# faria o usuário esperar por um provedor que já se mostrou fora do ar.
+TENTATIVAS_POR_MODELO = 2
+ESPERA_INICIAL = 1.5  # segundos; dobra a cada nova tentativa
+
+
 @dataclass
 class RespostaIA:
     conteudo: str | None = None
     erro: str | None = None
     modelo_usado: str | None = None
     usou_reserva: bool = False
+    # Diagnóstico: sem isto, investigar uma queda depende de reproduzir o erro
+    # na hora certa - foi o que aconteceu ao caçar o 404 intermitente.
+    provedor: str | None = None
+    latencia_ms: int | None = None
+    tentativas: list[str] = field(default_factory=list)
 
 
 def chave_api_openrouter() -> str | None:
@@ -179,14 +193,36 @@ def chamar_openrouter_detalhado(
     fila = [principal] + ([m for m in MODELOS_RESERVA if m != principal] if usar_reserva else [])
 
     erros: list[str] = []
+    diario: list[str] = []
+    inicio = time.monotonic()
+
     for tentativa, modelo_atual in enumerate(fila):
-        conteudo, erro, temporario = _tentar_modelo(
-            mensagens, modelo_atual, chave_api,
-            max_tokens=max_tokens, timeout=timeout, json_obrigatorio=json_obrigatorio,
-        )
+        conteudo = erro = None
+        temporario = False
+        # Repete no mesmo modelo antes de trocar, com espera crescente: só faz
+        # sentido para falha passageira, então erro definitivo sai do laço na
+        # primeira volta.
+        for repeticao in range(TENTATIVAS_POR_MODELO):
+            conteudo, erro, temporario = _tentar_modelo(
+                mensagens, modelo_atual, chave_api,
+                max_tokens=max_tokens, timeout=timeout, json_obrigatorio=json_obrigatorio,
+            )
+            if conteudo is not None or not temporario:
+                break
+            if repeticao + 1 < TENTATIVAS_POR_MODELO:
+                diario.append(f"{modelo_atual}: falha passageira, repetindo")
+                time.sleep(ESPERA_INICIAL * (2 ** repeticao))
+
         if conteudo is not None:
-            return RespostaIA(conteudo=conteudo, modelo_usado=modelo_atual, usou_reserva=tentativa > 0)
+            diario.append(f"{modelo_atual}: respondeu")
+            return RespostaIA(
+                conteudo=conteudo, modelo_usado=modelo_atual, usou_reserva=tentativa > 0,
+                provedor=modelo_atual.split("/")[0],
+                latencia_ms=int((time.monotonic() - inicio) * 1000),
+                tentativas=diario,
+            )
         erros.append(erro or "erro desconhecido")
+        diario.append(f"{modelo_atual}: {(erro or 'erro')[:80]}")
 
         # Falha de credencial vale para todos os modelos - insistir só gasta
         # tempo e repete o mesmo erro.
@@ -216,7 +252,11 @@ def chamar_openrouter_detalhado(
             f"{reservas_tentadas} modelo(s) reserva, sem sucesso. Os modelos gratuitos rodam em "
             "capacidade compartilhada e lotam em horário de pico - tente de novo em alguns minutos."
         )
-    return RespostaIA(erro=detalhe)
+    return RespostaIA(
+        erro=detalhe,
+        latencia_ms=int((time.monotonic() - inicio) * 1000),
+        tentativas=diario,
+    )
 
 
 def chamar_openrouter(
