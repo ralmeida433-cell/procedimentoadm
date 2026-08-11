@@ -38,10 +38,21 @@ URL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 # O primeiro é de outro provedor de propósito: quando a Nvidia está lotada,
 # outro modelo Nvidia tende a estar lotado também.
 # Ajustável por MAPPA_MODELOS_RESERVA (lista separada por vírgula) no .env.
+# Um por PROVEDOR, nesta ordem. Diversificar importa mais do que tamanho: a
+# queda que motivou esta lista foi da Nvidia inteira (404/502 no principal), e
+# ter dois reservas Nvidia teria caído junto. O da Nvidia fica por último, como
+# rede final, justamente por compartilhar a infraestrutura do principal.
+#
+# Todos foram testados nas DUAS cargas do sistema - prosa (consulta ao MAPPA) e
+# JSON estruturado (extração e tipificação). Um modelo que só faz prosa é pior
+# do que nenhum: passaria na consulta e falharia calado na extração.
+# Reprovados no teste de 11/08/2026: openai/gpt-oss-20b (400 nas duas cargas) e
+# inclusionai/ling-3.0-tiny (prosa OK, mas 400 em JSON).
 _RESERVA_PADRAO = [
     "poolside/laguna-s-2.1:free",
+    "google/gemma-4-31b-it:free",
+    "cohere/north-mini-code:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-26b-a4b-it:free",
 ]
 MODELOS_RESERVA = [
     m.strip() for m in (os.environ.get("MAPPA_MODELOS_RESERVA") or ",".join(_RESERVA_PADRAO)).split(",") if m.strip()
