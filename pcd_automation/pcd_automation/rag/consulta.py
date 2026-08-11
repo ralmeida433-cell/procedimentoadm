@@ -12,6 +12,8 @@ a resposta em linguagem natural, mostrando apenas os trechos encontrados.
 """
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 
 from ..ia_cliente import chamar_openrouter
@@ -63,8 +65,63 @@ def _formatar_trechos(trechos: list[Trecho]) -> str:
     return "\n\n---\n\n".join(partes)
 
 
-def buscar_trechos(pergunta: str, top_k: int = 10) -> list[Trecho]:
-    return obter_indice().buscar(pergunta, top_k=top_k)
+PROMPT_TERMOS = """Você traduz a descrição de um fato para os TERMOS TÉCNICOS que a lei usa, para \
+permitir a busca em códigos e regulamentos militares (CPM, CEDM, MAPPA, RGPM).
+
+A busca é literal: ela só encontra o que está escrito na lei. Quem descreve "tirou a farda e sujou" \
+não acha nada, porque o Código escreve "despojar-se de uniforme por menosprezo ou vilipêndio".
+
+Devolva os termos que provavelmente aparecem no TEXTO LEGAL sobre esse fato: verbos na forma da lei, \
+substantivos técnicos e sinônimos jurídicos. Inclua também o nome do instituto, se reconhecer.
+
+PROIBIDO: citar número de artigo, inciso ou lei. Você não sabe a numeração - devolve só palavras \
+para a busca. Nada de explicação.
+
+Responda SOMENTE com um objeto JSON: {"termos": ["...", "..."]}   (no máximo 12 termos)"""
+
+
+def expandir_consulta(pergunta: str) -> tuple[str, list[str]]:
+    """Acrescenta à pergunta os termos técnicos que a lei usaria.
+
+    O índice é BM25, ou seja, casamento de palavras. Uma pergunta em linguagem
+    corrente ("tirou a farda e defecou nela") não casa com o texto legal
+    ("despojar-se de uniforme, por menosprêzo ou vilipêndio") e a busca volta
+    vazia - foi o que aconteceu num caso real, em que o dispositivo estava
+    indexado e mesmo assim não foi encontrado.
+
+    A tradução gera apenas PALAVRAS DE BUSCA. Number de artigo continua vindo
+    exclusivamente do trecho recuperado: expandir a busca aumenta o alcance sem
+    abrir espaço para o modelo citar de memória.
+
+    Devolve (consulta_expandida, termos_acrescentados). Se a expansão falhar,
+    devolve a pergunta original - a busca segue como antes.
+    """
+    pergunta = (pergunta or "").strip()
+    if len(pergunta) < 10:
+        return pergunta, []
+    conteudo, erro = chamar_openrouter(
+        [{"role": "system", "content": PROMPT_TERMOS}, {"role": "user", "content": pergunta}],
+        max_tokens=300,
+        timeout=45,
+        json_obrigatorio=True,
+    )
+    if erro or not conteudo:
+        return pergunta, []
+    try:
+        bruto = re.sub(r"^```(?:json)?\s*|\s*```$", "", conteudo.strip(), flags=re.IGNORECASE)
+        termos = [str(t).strip() for t in (json.loads(bruto).get("termos") or []) if str(t).strip()]
+    except (json.JSONDecodeError, AttributeError):
+        return pergunta, []
+    # Descarta o que vier com número de artigo, por segurança.
+    termos = [t for t in termos if not re.search(r"art\.?\s*\d|\bn[ºo°]\s*\d", t, re.IGNORECASE)][:12]
+    if not termos:
+        return pergunta, []
+    return pergunta + " " + " ".join(termos), termos
+
+
+def buscar_trechos(pergunta: str, top_k: int = 10, expandir: bool = False) -> list[Trecho]:
+    consulta = expandir_consulta(pergunta)[0] if expandir else pergunta
+    return obter_indice().buscar(consulta, top_k=top_k)
 
 
 def _consulta_de_busca(mensagens: list[dict], janela: int = 3) -> str:
@@ -101,7 +158,7 @@ def responder_conversa(mensagens: list[dict], top_k: int = 10) -> RespostaConsul
         resultado.erro = "Digite uma pergunta."
         return resultado
 
-    trechos = buscar_trechos(_consulta_de_busca(mensagens), top_k=top_k)
+    trechos = buscar_trechos(_consulta_de_busca(mensagens), top_k=top_k, expandir=True)
     resultado.trechos = trechos
     if not trechos:
         resultado.erro = (
@@ -142,7 +199,7 @@ def responder(pergunta: str, top_k: int = 10) -> RespostaConsulta:
         resultado.erro = "Digite uma pergunta."
         return resultado
 
-    trechos = buscar_trechos(pergunta, top_k=top_k)
+    trechos = buscar_trechos(pergunta, top_k=top_k, expandir=True)
     resultado.trechos = trechos
     if not trechos:
         resultado.erro = "Nenhum trecho relevante foi encontrado nas referências do MAPPA para essa pergunta."

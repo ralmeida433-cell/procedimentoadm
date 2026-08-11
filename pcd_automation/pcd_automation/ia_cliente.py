@@ -107,6 +107,14 @@ def _tentar_modelo(
 
     if resposta_http.status_code != 200:
         temporario = resposta_http.status_code in (408, 409, 429, 500, 502, 503, 504)
+        # A OpenRouter devolve 404 em dois casos MUITO diferentes: o modelo não
+        # existe (permanente) ou o provedor upstream falhou naquele instante
+        # ("Provider returned error" - transitório). Sem separar os dois, uma
+        # falha passageira do provedor derrubava a consulta inteira sem sequer
+        # tentar os modelos reserva, que foi o que aconteceu em uso real.
+        if resposta_http.status_code == 404:
+            corpo_erro = resposta_http.text.lower()
+            temporario = "not a valid model" not in corpo_erro and "no endpoints" not in corpo_erro
         return None, f"A IA retornou erro HTTP {resposta_http.status_code} ({modelo}): {resposta_http.text[:200]}", temporario
 
     try:
