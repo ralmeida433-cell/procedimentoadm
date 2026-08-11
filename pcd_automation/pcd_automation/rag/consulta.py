@@ -65,6 +65,36 @@ def _formatar_trechos(trechos: list[Trecho]) -> str:
     return "\n\n---\n\n".join(partes)
 
 
+def _bloco_transgressoes(pergunta: str, limite: int = 5) -> str:
+    """Transgressões do CEDM vindas da base estruturada, com artigo e inciso
+    já conferidos.
+
+    Existe por um erro real: perguntado sobre dormir em serviço, o assistente
+    respondeu "art. 15, XV do CEDM". O trecho recuperado da ICCPM comenta o
+    inciso XV sob a numeração de PARÁGRAFO dela mesma ("§ 15."), e o modelo leu
+    aquele 15 como se fosse o artigo. O certo é art. 13, XV - a própria ICCPM
+    diz isso em outra passagem.
+
+    Texto corrido não protege contra esse tipo de confusão; um par
+    (artigo, inciso) conferido, sim. `transgressoes_cedm` é essa base.
+    """
+    from ..transgressoes_cedm import buscar_candidatas
+
+    candidatas = buscar_candidatas(pergunta, limite=limite)
+    if not candidatas:
+        return ""
+    linhas = [
+        f'- art. {t.artigo}, inciso {t.inciso}, do CEDM (natureza {t.natureza}): "{t.texto}"'
+        for t in candidatas
+    ]
+    return (
+        "BASE VERIFICADA DAS TRANSGRESSÕES DO CEDM (artigo e inciso conferidos - se a resposta "
+        "citar transgressão disciplinar, use a numeração DESTA lista, e não a que você deduzir do "
+        "texto corrido dos trechos; os comentários da ICCPM numeram os próprios parágrafos, e um "
+        "\"§ 15\" ali NÃO é o art. 15 do CEDM):\n" + "\n".join(linhas)
+    )
+
+
 PROMPT_TERMOS = """Você traduz a descrição de um fato para os TERMOS TÉCNICOS que a lei usa, para \
 permitir a busca em códigos e regulamentos militares (CPM, CEDM, MAPPA, RGPM).
 
@@ -179,6 +209,7 @@ def responder_conversa(mensagens: list[dict], top_k: int = 10) -> RespostaConsul
         "role": "user",
         "content": (
             f"Trechos de referência recuperados para esta pergunta:\n\n{_formatar_trechos(trechos)}\n\n"
+            f"{_bloco_transgressoes(ultima)}\n\n"
             f"Pergunta do encarregado: {conteudo_final}"
         ),
     }
@@ -212,6 +243,7 @@ def responder(pergunta: str, top_k: int = 10) -> RespostaConsulta:
                 "role": "user",
                 "content": (
                     f"Trechos de referência:\n\n{_formatar_trechos(trechos)}\n\n"
+                    f"{_bloco_transgressoes(pergunta)}\n\n"
                     f"Pergunta do encarregado: {pergunta}"
                 ),
             },

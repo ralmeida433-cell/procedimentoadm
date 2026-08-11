@@ -432,7 +432,18 @@ def cmd_servidor(args: argparse.Namespace) -> int:
 
     app = criar_app(DIRETORIO_PROCESSOS_PADRAO)
     print(f"Assistente de PCD disponível em: http://127.0.0.1:{args.porta}")
-    app.run(host="127.0.0.1", port=args.porta, debug=args.debug)
+    # O recarregador fica LIGADO por padrão. Sem ele, o servidor guarda em
+    # memória a versão do código que existia quando subiu: uma correção feita
+    # depois simplesmente não vale, e o sintoma é o erro antigo reaparecendo
+    # como se nada tivesse sido corrigido - sem nenhuma pista do motivo.
+    # Isso já custou uma investigação em falso. Use --sem-recarregar para
+    # desligar (ex.: ao rodar em servidor de produção).
+    app.run(
+        host="127.0.0.1",
+        port=args.porta,
+        debug=args.debug,
+        use_reloader=not args.sem_recarregar,
+    )
     return 0
 
 
@@ -520,6 +531,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_servidor.add_argument("--porta", type=int, default=5000)
     p_servidor.add_argument("--debug", action="store_true")
+    p_servidor.add_argument(
+        "--sem-recarregar", action="store_true",
+        help="Não reinicia sozinho quando o código muda (use em produção)",
+    )
     p_servidor.set_defaults(func=cmd_servidor)
 
     p_consultar = subparsers.add_parser(

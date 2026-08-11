@@ -176,12 +176,26 @@ def chamar_openrouter_detalhado(
         if conteudo is not None:
             return RespostaIA(conteudo=conteudo, modelo_usado=modelo_atual, usou_reserva=tentativa > 0)
         erros.append(erro or "erro desconhecido")
-        if not temporario:
-            break  # erro de chave/pedido: trocar de modelo não resolve
+
+        # Falha de credencial vale para todos os modelos - insistir só gasta
+        # tempo e repete o mesmo erro.
+        if re.search(r"HTTP 40[13]\b", erro or ""):
+            break
+        # Fora isso, seguimos para o próximo modelo mesmo em erro "permanente":
+        # um 400 costuma ser recusa DAQUELE modelo (parâmetro não suportado,
+        # limite próprio), não do pedido em si. Parar a fila por causa de um
+        # modelo deixava o usuário sem resposta com outros dois disponíveis -
+        # foi o que aconteceu em uso real, com a mensagem "1 modelo reserva,
+        # sem sucesso" enquanto restavam dois intactos.
+        if not temporario and tentativa == 0 and modelo is not None:
+            # Exceção: modelo pedido explicitamente pelo chamador. Aí o erro é
+            # sobre a escolha dele, e trocar por outro seria ignorar o pedido.
+            break
 
     detalhe = erros[0] if erros else "erro desconhecido"
-    # Só menciona os reservas se eles foram MESMO tentados: numa falha não
-    # temporária (chave inválida, modelo inexistente) o laço para no primeiro,
+    # Só menciona os reservas se eles foram MESMO tentados: quando a fila para
+    # cedo (credencial inválida, ou modelo escolhido pelo chamador), o laço não
+    # chega neles,
     # e dizer que tentou 3 modelos mandaria o usuário procurar defeito onde
     # não há.
     reservas_tentadas = len(erros) - 1
