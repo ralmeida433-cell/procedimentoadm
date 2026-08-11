@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block titulo %}Configurações{% endblock %}
+{% block secao %}Configurações{% endblock %}
+{% block topo_acoes %}{% endblock %}
+{% block conteudo %}
+
+{% if request.args.get('salvo') %}
+  <div class="caixa caixa-sucesso">
+    <strong>Configuração salva e testada.</strong> A chave já está valendo — não é preciso reiniciar o programa.
+  </div>
+{% endif %}
+
+{% if erro %}
+  <div class="caixa caixa-erro"><strong>Não foi possível salvar:</strong> {{ erro }}</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>Inteligência artificial</h2>
+  <p class="subtitulo">
+    A chave é usada para a consulta ao MAPPA, a análise de REDS, a extração de documentos e a
+    redação das condutas. Sem ela, o resto do sistema funciona normalmente — só os recursos de IA
+    ficam indisponíveis.
+  </p>
+
+  <div class="caixa {{ 'caixa-sucesso' if chave_configurada else 'caixa-aviso' }}">
+    {% if chave_configurada %}
+      <strong>Chave configurada:</strong> <code>{{ chave_mascarada }}</code><br>
+      <span class="legenda">Mostramos só o início e o fim, para você conferir qual chave está salva sem expô-la.</span>
+    {% else %}
+      <strong>Nenhuma chave configurada.</strong> Os recursos de IA estão desligados até você salvar uma.
+    {% endif %}
+  </div>
+
+  <form method="post" data-demorado data-etapas="Testando a chave no modelo escolhido|Salvando">
+    <div class="campo">
+      <label for="chave_api">
+        Chave da API (OpenRouter)
+        <span class="dica" tabindex="0">
+          <span class="dica-icone" aria-hidden="true">?</span>
+          <span class="dica-texto" role="tooltip">
+            Crie em openrouter.ai/keys. Uma única chave dá acesso aos modelos de todos os provedores
+            (Google, Nvidia, Qwen, Cohere), inclusive os gratuitos.
+          </span>
+        </span>
+      </label>
+      <input type="password" id="chave_api" name="chave_api" autocomplete="off" spellcheck="false"
+             placeholder="{{ 'Deixe em branco para manter a chave atual' if chave_configurada else 'sk-or-v1-...' }}">
+      <p class="legenda">
+        O campo é do tipo senha: o que você digitar não aparece na tela. A chave fica guardada
+        apenas neste computador, no arquivo <code>.env</code>, que não vai para o GitHub.
+      </p>
+    </div>
+
+    <div class="campo">
+      <label for="modelo">Modelo de IA</label>
+      <select id="modelo" name="modelo">
+        {% for valor, rotulo, _obs in modelos %}
+          <option value="{{ valor }}" {{ 'selected' if modelo_atual == valor else '' }}>{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+      {% for valor, _rotulo, obs in modelos %}
+        <p class="legenda" style="margin-top:var(--e2);"><strong>{{ valor }}</strong> — {{ obs }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="acoes">
+      <button type="submit" class="btn btn-primario">Testar e salvar</button>
+      <a class="btn btn-secundario" href="{{ url_for('pcd.dashboard') }}">Voltar ao painel</a>
+    </div>
+    <p class="legenda">
+      Antes de salvar, o sistema faz uma chamada mínima para conferir que a chave funciona no modelo
+      escolhido. Uma chave errada salva em silêncio só apareceria depois, no meio de uma consulta.
+    </p>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>Como funciona a troca por um modelo pago</h2>
+  <p class="subtitulo">
+    Os modelos pagos são cobrados pela OpenRouter, com a mesma chave — não é preciso criar conta no
+    Google nem em nenhum outro provedor.
+  </p>
+  <ul style="margin:0 0 var(--e4) var(--e5); font-size:var(--t-aux);">
+    <li>Adicione crédito em <code>openrouter.ai/credits</code> (aceita cartão).</li>
+    <li>Escolha o modelo pago acima e salve.</li>
+    <li>O custo é por uso: uma consulta típica sai por fração de centavo.</li>
+  </ul>
+  <p class="legenda">
+    A IA paga do Google (Gemini) é alcançada por aqui mesmo. A integração direta com o Google AI
+    Studio não é usada de propósito: as chaves novas do Google (prefixo <code>AQ.</code>) retornam
+    erro 401 de forma generalizada, e foi por isso que este sistema passou a usar a OpenRouter.
+  </p>
+
+  <h3>Modelos reserva</h3>
+  <p class="legenda">
+    Se o modelo escolhido ficar indisponível, o sistema tenta automaticamente, nesta ordem:
+  </p>
+  <ul style="margin:0 0 0 var(--e5); font-size:var(--t-legenda); color:var(--texto-suave);">
+    {% for r in reservas %}<li><code>{{ r }}</code></li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

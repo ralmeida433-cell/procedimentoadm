@@ -859,4 +859,7 @@ def criar_app(diretorio_base: Path | str) -> Flask:
     # Assistente MAPPA flutuante (widget em base.html, disponível em todas as telas).
     from pcd_automation.webapp.assistente import bp_assistente
     app.register_blueprint(bp_assistente)
+    # Tela de configurações (chave de API e modelo de IA).
+    from pcd_automation.webapp.configuracoes import bp_config
+    app.register_blueprint(bp_config)
     return app
